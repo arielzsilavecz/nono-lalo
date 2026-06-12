@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Menu, MenuItem } from '../../lib/types'
 import { formatARS, formatDateOnly, formatDateTime, todayDateValue } from '../../lib/format'
-import { Mascot } from '../../components/Mascot'
+import logoImg from '/logo.png'
 import { Card, EmptyState, LoadingBlock } from '../../components/ui'
 
 export function Home() {
@@ -46,7 +46,7 @@ export function Home() {
       {/* Hero estilo pizarra */}
       <section className="mb-10 rounded-3xl border-4 border-navy-800 bg-crema-100 px-6 py-10 text-center shadow-md">
         <div className="flex flex-col items-center gap-4">
-          <Mascot className="h-32 w-32" />
+          <img src={logoImg} alt="il nonno Lalo" className="h-40 w-40 object-contain drop-shadow-md" />
           <h1 className="font-script text-5xl font-bold text-navy-800 sm:text-6xl">
             Cocina casera con alma de familia
           </h1>

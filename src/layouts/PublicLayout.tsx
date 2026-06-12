@@ -1,12 +1,14 @@
 import { Link, Outlet } from 'react-router-dom'
 import { Logo } from '../components/Logo'
+import logoImg from '/logo.png'
 
 export function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-crema-200 bg-crema-50/90 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <Link to="/" aria-label="Ir al inicio">
+          <Link to="/" aria-label="Ir al inicio" className="flex items-center gap-2">
+            <img src={logoImg} alt="il nonno Lalo" className="h-10 w-10 object-contain" />
             <Logo className="text-3xl" />
           </Link>
           <span className="hidden font-script text-xl text-navy-600 sm:block">

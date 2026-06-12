@@ -66,7 +66,7 @@ export function Dashboard() {
       <PageTitle
         title="¿Qué cocinamos hoy?"
         action={
-          <Link to="/admin/menus/nuevo">
+          <Link to="/admin/publicaciones/nueva">
             <Button>+ Nuevo menú</Button>
           </Link>
         }
@@ -95,8 +95,8 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link to={`/admin/menus/${stats.nextMenu.id}`}>
-                  <Button variant="secondary">Editar menú</Button>
+                <Link to={`/admin/publicaciones/${stats.nextMenu.id}`}>
+                  <Button variant="secondary">Editar publicación</Button>
                 </Link>
                 <Link to={`/admin/compras?menu=${stats.nextMenu.id}`}>
                   <Button variant="ghost">Lista de compras</Button>

@@ -46,8 +46,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (!session) {
     return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />
   }
-  if (session.user.user_metadata?.must_change_password && location.pathname !== '/admin/cambiar-contraseña') {
-    return <Navigate to="/admin/cambiar-contraseña" replace />
+  if (session.user.user_metadata?.must_change_password && location.pathname !== '/admin/cambiar-contrasena') {
+    return <Navigate to="/admin/cambiar-contrasena" replace />
   }
   return <>{children}</>
 }
