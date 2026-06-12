@@ -6,6 +6,7 @@ import { Home } from './pages/public/Home'
 import { PublicMenu } from './pages/public/PublicMenu'
 import { OrderConfirmed } from './pages/public/OrderConfirmed'
 import { Login } from './pages/admin/Login'
+import { ChangePassword } from './pages/admin/ChangePassword'
 import { Dashboard } from './pages/admin/Dashboard'
 import { Menus } from './pages/admin/Menus'
 import { MenuEditor } from './pages/admin/MenuEditor'
@@ -29,6 +30,7 @@ export default function App() {
           </Route>
 
           <Route path="/admin/login" element={<Login />} />
+          <Route path="/admin/cambiar-contraseña" element={<RequireAuth><ChangePassword /></RequireAuth>} />
           <Route
             path="/admin"
             element={
