@@ -82,7 +82,9 @@ export function Dashboard() {
                 Entrega: <strong>{formatDateOnly(stats.nextMenu.delivery_date)}</strong>
               </p>
               <p className="text-sm text-navy-600">
-                Cierre de encargos: {formatDateTime(stats.nextMenu.order_deadline)}
+                {stats.nextMenu.order_deadline
+                  ? `Cierre de encargos: ${formatDateTime(stats.nextMenu.order_deadline)}`
+                  : 'Disponible hasta agotar stock'}
               </p>
               <div className="mt-4 flex flex-wrap gap-6">
                 <div>

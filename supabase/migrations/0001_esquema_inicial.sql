@@ -78,7 +78,8 @@ create table public.menus (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   delivery_date date not null,
-  order_deadline timestamptz not null,
+  -- null = publicar hasta agotar stock (sin fecha límite)
+  order_deadline timestamptz,
   status text not null default 'draft'
     check (status in ('draft', 'published', 'closed', 'cooked')),
   notes text not null default '',

@@ -44,15 +44,11 @@ export function Home() {
   return (
     <div>
       {/* Hero estilo pizarra */}
-      <section className="mb-10 rounded-3xl border-4 border-navy-800 bg-crema-100 px-6 py-10 text-center shadow-md">
-        <div className="flex flex-col items-center gap-4">
-          <img src={logoImg} alt="il nonno Lalo" className="h-40 w-40 object-contain drop-shadow-md" />
-          <h1 className="font-script text-5xl font-bold text-navy-800 sm:text-6xl">
-            Cocina casera con alma de familia
-          </h1>
-          <p className="max-w-xl text-navy-700">
+      <section className="mb-10 rounded-3xl border-4 border-navy-800 bg-crema-100 px-6 py-4 text-center shadow-md">
+        <div className="flex flex-col items-center gap-2">
+          <img src={logoImg} alt="il nonno Lalo" className="h-56 w-56 object-contain drop-shadow-md" />
+          <p className="max-w-xl font-script text-2xl text-navy-700 sm:text-3xl">
             Elaboración de pastas y comidas 100% caseras, con ingredientes frescos.
-            Porque lo que servimos no es solo comida: <strong>es el sabor de casa</strong>.
           </p>
         </div>
       </section>
@@ -69,7 +65,7 @@ export function Home() {
         <div className="grid gap-4 sm:grid-cols-2">
           {menus.map((menu) => {
             const items = itemsByMenu.get(menu.id) ?? []
-            const open = Date.parse(menu.order_deadline) > Date.now()
+            const open = menu.order_deadline === null || Date.parse(menu.order_deadline) > Date.now()
             return (
               <Card key={menu.id} className="flex flex-col">
                 <p className="text-sm font-bold uppercase tracking-wide text-tomate-600">
@@ -86,7 +82,7 @@ export function Home() {
                 </ul>
                 <p className="mt-3 text-xs text-navy-500">
                   {open
-                    ? `Encargá hasta: ${formatDateTime(menu.order_deadline)}`
+                    ? (menu.order_deadline ? `Encargá hasta: ${formatDateTime(menu.order_deadline)}` : 'Disponible hasta agotar stock')
                     : 'Encargos cerrados'}
                 </p>
                 <Link

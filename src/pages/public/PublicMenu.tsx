@@ -45,7 +45,8 @@ export function PublicMenu() {
     load()
   }, [load])
 
-  const open = menu !== null && menu.status === 'published' && Date.parse(menu.order_deadline) > Date.now()
+  const open = menu !== null && menu.status === 'published' &&
+    (menu.order_deadline === null || Date.parse(menu.order_deadline) > Date.now())
 
   const cart = useMemo(
     () =>
@@ -134,7 +135,9 @@ export function PublicMenu() {
       <h1 className="mt-1 font-script text-5xl font-bold text-navy-800">{menu.title}</h1>
       {menu.notes && <p className="mt-2 text-navy-700">{menu.notes}</p>}
       <p className="mt-2 text-sm text-navy-500">
-        {open ? `Encargá hasta: ${formatDateTime(menu.order_deadline)}` : 'Los encargos de este menú están cerrados.'}
+        {open
+          ? (menu.order_deadline ? `Encargá hasta: ${formatDateTime(menu.order_deadline)}` : 'Disponible hasta agotar stock')
+          : 'Los encargos de este menú están cerrados.'}
       </p>
 
       <div className="mt-6 space-y-3">

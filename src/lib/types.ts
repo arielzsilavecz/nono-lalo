@@ -39,7 +39,7 @@ export interface Menu {
   id: string
   title: string
   delivery_date: string
-  order_deadline: string
+  order_deadline: string | null
   status: MenuStatus
   notes: string
   created_at: string

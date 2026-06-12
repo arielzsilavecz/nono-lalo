@@ -76,7 +76,7 @@ export function Publications() {
                       {item ? item.dish_name : menu.title}
                     </p>
                     <p className="text-sm text-navy-500">
-                      Cierre: {formatDateTime(menu.order_deadline)}
+                      {menu.order_deadline ? `Cierre: ${formatDateTime(menu.order_deadline)}` : 'Hasta agotar stock'}
                       {item && (
                         <>
                           {' · '}

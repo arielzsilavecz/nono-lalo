@@ -150,6 +150,13 @@ export function DishEditor() {
     navigate('/admin/platos')
   }
 
+  async function deleteDish() {
+    if (!window.confirm('¿Eliminar este plato? No se puede deshacer.')) return
+    const { error: deleteError } = await supabase.from('dishes').delete().eq('id', dishId)
+    if (deleteError) { setError('No se pudo eliminar el plato.'); return }
+    navigate('/admin/platos')
+  }
+
   if (loading) return <LoadingBlock />
 
   return (
@@ -217,9 +224,8 @@ export function DishEditor() {
               {recipe.map((row, index) => {
                 const ingredient = ingredientById.get(row.ingredient_id)
                 return (
-                  <div key={index} className="flex items-center gap-2">
+                  <div key={index} className="grid items-center gap-2" style={{ gridTemplateColumns: '1fr 5.5rem 3rem 2rem' }}>
                     <Select
-                      className="flex-1"
                       value={row.ingredient_id}
                       onChange={(e) => updateRow(index, { ingredient_id: e.target.value })}
                     >
@@ -230,7 +236,6 @@ export function DishEditor() {
                       ))}
                     </Select>
                     <Input
-                      className="w-24"
                       type="number"
                       min="0"
                       step="0.001"
@@ -238,7 +243,7 @@ export function DishEditor() {
                       onChange={(e) => updateRow(index, { qty: e.target.value })}
                       placeholder="Cant."
                     />
-                    <span className="w-14 text-xs font-semibold text-navy-500">
+                    <span className="text-xs font-semibold text-navy-500">
                       {ingredient?.unit ?? ''}
                     </span>
                     <button
@@ -278,13 +283,18 @@ export function DishEditor() {
 
         <div className="lg:col-span-2">
           {error && <div className="mb-3"><ErrorText>{error}</ErrorText></div>}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={saving}>
               {saving ? 'Guardando…' : 'Guardar plato'}
             </Button>
             <Link to="/admin/platos">
               <Button variant="ghost">Cancelar</Button>
             </Link>
+            {!isNew && (
+              <Button variant="danger" type="button" onClick={deleteDish}>
+                Eliminar plato
+              </Button>
+            )}
           </div>
         </div>
       </form>

@@ -50,8 +50,8 @@ export function Menus() {
                   <div>
                     <p className="font-script text-2xl font-bold text-navy-800">{menu.title}</p>
                     <p className="text-sm text-navy-600">
-                      Entrega: {formatDateOnly(menu.delivery_date)} · Cierre:{' '}
-                      {formatDateTime(menu.order_deadline)}
+                      Entrega: {formatDateOnly(menu.delivery_date)}
+                      {menu.order_deadline ? ` · Cierre: ${formatDateTime(menu.order_deadline)}` : ' · Hasta agotar stock'}
                     </p>
                   </div>
                   <Badge tone={STATUS_TONES[menu.status]}>{MENU_STATUS_LABELS[menu.status]}</Badge>

@@ -28,6 +28,7 @@ export function PublicationEditor() {
   const [status, setStatus] = useState<MenuStatus>('draft')
   const [selectedDishId, setSelectedDishId] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
+  const [openUntilSoldOut, setOpenUntilSoldOut] = useState(false)
   const [deadlineLocal, setDeadlineLocal] = useState('')
   const [price, setPrice] = useState('')
   const [maxPortions, setMaxPortions] = useState('')
@@ -62,7 +63,8 @@ export function PublicationEditor() {
         if (menu) {
           setStatus(menu.status)
           setDeliveryDate(menu.delivery_date)
-          setDeadlineLocal(toDatetimeLocal(menu.order_deadline))
+          setOpenUntilSoldOut(menu.order_deadline === null)
+          if (menu.order_deadline !== null) setDeadlineLocal(toDatetimeLocal(menu.order_deadline))
           setNotes(menu.notes)
         }
         if (item) {
@@ -81,6 +83,11 @@ export function PublicationEditor() {
     }
     load()
   }, [pubId, isNew])
+
+  // Limpiar deadline cuando se activa "hasta agotar stock"
+  useEffect(() => {
+    if (openUntilSoldOut) setDeadlineLocal('')
+  }, [openUntilSoldOut])
 
   const ingredientById = useMemo(() => new Map(ingredients.map((i) => [i.id, i])), [ingredients])
 
@@ -104,7 +111,9 @@ export function PublicationEditor() {
     e.preventDefault()
     setError('')
     if (!selectedDishId) { setError('Elegí un plato.'); return }
-    if (!deliveryDate || !deadlineLocal) { setError('Completá la fecha de entrega y el cierre.'); return }
+    if (!deliveryDate) { setError('Completá la fecha de entrega.'); return }
+    if (!openUntilSoldOut && !deadlineLocal) { setError('Completá el cierre de encargos o activá "hasta agotar stock".'); return }
+    if (openUntilSoldOut && !maxPortions.trim()) { setError('Definí el cupo máximo si publicás hasta agotar stock.'); return }
     if (Number(price) < 0) { setError('El precio no es válido.'); return }
 
     setSaving(true)
@@ -112,7 +121,7 @@ export function PublicationEditor() {
     const menuRow = {
       title: dish.name,
       delivery_date: deliveryDate,
-      order_deadline: fromDatetimeLocal(deadlineLocal),
+      order_deadline: openUntilSoldOut ? null : fromDatetimeLocal(deadlineLocal),
       notes: notes.trim(),
     }
 
@@ -155,8 +164,12 @@ export function PublicationEditor() {
     setError('')
     if (next === 'published') {
       if (!menuItemId) { setError('Guardá primero antes de publicar.'); return }
-      if (Date.parse(fromDatetimeLocal(deadlineLocal)) <= Date.now()) {
+      if (!openUntilSoldOut && Date.parse(fromDatetimeLocal(deadlineLocal)) <= Date.now()) {
         setError('El cierre de encargos ya pasó. Actualizalo antes de publicar.')
+        return
+      }
+      if (openUntilSoldOut && !maxPortions.trim()) {
+        setError('Definí el cupo máximo antes de publicar.')
         return
       }
     }
@@ -205,7 +218,13 @@ export function PublicationEditor() {
   }
 
   async function deletePublication() {
-    if (!window.confirm('¿Eliminar esta publicación borrador?')) return
+    const { data: orderRows } = await supabase
+      .from('orders').select('id', { count: 'exact', head: false }).eq('menu_id', pubId).neq('status', 'cancelled')
+    const orderCount = (orderRows ?? []).length
+    const msg = orderCount > 0
+      ? `Esta publicación tiene ${orderCount} pedido${orderCount > 1 ? 's' : ''} activo${orderCount > 1 ? 's' : ''}. ¿Eliminarla igualmente? Los pedidos quedarán huérfanos.`
+      : '¿Eliminar esta publicación? No se puede deshacer.'
+    if (!window.confirm(msg)) return
     const { error: deleteError } = await supabase.from('menus').delete().eq('id', pubId)
     if (deleteError) { setError('No se pudo eliminar.'); return }
     navigate('/admin/publicaciones')
@@ -257,15 +276,27 @@ export function PublicationEditor() {
                   onChange={(e) => setDeliveryDate(e.target.value)}
                 />
               </Field>
-              <Field label="Cierre de encargos">
-                <Input
-                  required
-                  type="datetime-local"
-                  value={deadlineLocal}
-                  onChange={(e) => setDeadlineLocal(e.target.value)}
-                />
-              </Field>
+              {!openUntilSoldOut && (
+                <Field label="Cierre de encargos">
+                  <Input
+                    required
+                    type="datetime-local"
+                    value={deadlineLocal}
+                    onChange={(e) => setDeadlineLocal(e.target.value)}
+                  />
+                </Field>
+              )}
             </div>
+
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-navy-700">
+              <input
+                type="checkbox"
+                checked={openUntilSoldOut}
+                onChange={(e) => setOpenUntilSoldOut(e.target.checked)}
+                className="h-4 w-4 accent-tomate-500"
+              />
+              Publicar hasta agotar stock
+            </label>
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="Precio por porción ($)" hint={cost > 0 ? `Costo: ${formatARS(cost)}` : undefined}>
@@ -278,7 +309,7 @@ export function PublicationEditor() {
                   onChange={(e) => setPrice(e.target.value)}
                 />
               </Field>
-              <Field label="Cupo de porciones" hint="Vacío = sin límite">
+              <Field label="Cupo de porciones" hint={openUntilSoldOut ? 'Requerido cuando publicás hasta agotar stock' : 'Vacío = sin límite'}>
                 <Input
                   type="number"
                   min="1"
@@ -314,14 +345,14 @@ export function PublicationEditor() {
               </Button>
 
               {!isNew && status === 'draft' && (
-                <>
-                  <Button variant="secondary" type="button" onClick={() => changeStatus('published')}>
-                    Publicar
-                  </Button>
-                  <Button variant="danger" type="button" onClick={deletePublication}>
-                    Eliminar
-                  </Button>
-                </>
+                <Button variant="secondary" type="button" onClick={() => changeStatus('published')}>
+                  Publicar
+                </Button>
+              )}
+              {!isNew && (
+                <Button variant="danger" type="button" onClick={deletePublication}>
+                  Eliminar
+                </Button>
               )}
               {status === 'published' && (
                 <>
@@ -345,7 +376,7 @@ export function PublicationEditor() {
               )}
               {status === 'cooked' && (
                 <p className="self-center text-sm font-semibold text-navy-500">
-                  ¡Cocinado el {formatDateOnly(deliveryDate)}!
+                  Cocinado el {formatDateOnly(deliveryDate)}
                 </p>
               )}
             </div>
