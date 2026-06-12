@@ -1,0 +1,5 @@
+project_id = "il-nonno-lalo"
+
+[functions.place-order]
+# El cliente público llama a la función con la anon key (JWT válido)
+verify_jwt = true
