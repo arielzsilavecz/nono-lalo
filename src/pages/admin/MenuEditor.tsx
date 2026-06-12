@@ -65,7 +65,7 @@ export function MenuEditor() {
           setStatus(menu.status)
           setTitle(menu.title)
           setDeliveryDate(menu.delivery_date)
-          setDeadlineLocal(toDatetimeLocal(menu.order_deadline))
+          setDeadlineLocal(menu.order_deadline ? toDatetimeLocal(menu.order_deadline) : '')
           setNotes(menu.notes)
           setItems(
             ((itemRows ?? []) as MenuItem[]).map((item) => ({
