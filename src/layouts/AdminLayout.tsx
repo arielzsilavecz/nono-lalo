@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: '/admin', label: 'Resumen', end: true },
   { to: '/admin/publicaciones', label: 'Publicaciones' },
   { to: '/admin/pedidos', label: 'Pedidos' },
+  { to: '/admin/clientes', label: 'Clientes' },
   { to: '/admin/compras', label: 'Compras' },
   { to: '/admin/platos', label: 'Platos' },
   { to: '/admin/ingredientes', label: 'Ingredientes' },

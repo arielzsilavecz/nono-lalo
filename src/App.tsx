@@ -19,6 +19,7 @@ import { DishEditor } from './pages/admin/DishEditor'
 import { Ingredients } from './pages/admin/Ingredients'
 import { Pantry } from './pages/admin/Pantry'
 import { Settings } from './pages/admin/Settings'
+import { Customers } from './pages/admin/Customers'
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="menus" element={<Menus />} />
             <Route path="menus/:menuId" element={<MenuEditor />} />
             <Route path="pedidos" element={<Orders />} />
+            <Route path="clientes" element={<Customers />} />
             <Route path="compras" element={<ShoppingList />} />
             <Route path="platos" element={<Dishes />} />
             <Route path="platos/:dishId" element={<DishEditor />} />

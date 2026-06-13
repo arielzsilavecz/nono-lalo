@@ -125,3 +125,11 @@ export const PANTRY_REASON_LABELS: Record<PantryReason, string> = {
   cooking: 'Cocina',
   adjustment: 'Ajuste',
 }
+
+export interface Customer {
+  id: string
+  phone: string
+  name: string
+  address: string | null
+  created_at: string
+}
