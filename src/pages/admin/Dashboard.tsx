@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import type { Menu } from '../../lib/types'
 import { formatARS, formatDateOnly, formatDateTime, todayDateValue } from '../../lib/format'
 import { Button, Card, LoadingBlock, PageTitle } from '../../components/ui'
+import { Pencil } from 'lucide-react'
 
 interface Stats {
   nextMenu: Menu | null
@@ -66,7 +67,7 @@ export function Dashboard() {
       <PageTitle
         title="¿Qué cocinamos hoy?"
         action={
-          <Link to="/admin/publicaciones/nueva">
+          <Link to="/admin/publicaciones">
             <Button>+ Nueva publicación</Button>
           </Link>
         }
@@ -97,8 +98,8 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link to={`/admin/publicaciones/${stats.nextMenu.id}`}>
-                  <Button variant="secondary">Editar publicación</Button>
+                <Link to="/admin/publicaciones">
+                  <Button variant="secondary" title="Editar publicación"><Pencil size={14} /></Button>
                 </Link>
                 <Link to={`/admin/compras?menu=${stats.nextMenu.id}`}>
                   <Button variant="ghost">Lista de compras</Button>

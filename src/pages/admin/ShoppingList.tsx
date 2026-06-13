@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Ingredient, Menu } from '../../lib/types'
-import { formatARS, formatDateOnly } from '../../lib/format'
+import { formatARS, formatDateOnly, formatQty } from '../../lib/format'
 import { Button, Card, EmptyState, LoadingBlock, PageTitle, Select } from '../../components/ui'
 
 interface ShoppingRow {
@@ -201,13 +201,13 @@ export function ShoppingList() {
                 >
                   <td className="px-4 py-3 font-semibold text-navy-800">{row.ingredient.name}</td>
                   <td className="px-4 py-3 text-right text-navy-700">
-                    {row.needed.toFixed(2)} {row.ingredient.unit}
+                    {formatQty(row.needed)} {row.ingredient.unit}
                   </td>
                   <td className="px-4 py-3 text-right text-navy-700">
-                    {row.inPantry.toFixed(2)} {row.ingredient.unit}
+                    {formatQty(row.inPantry)} {row.ingredient.unit}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-navy-900">
-                    {row.toBuy.toFixed(2)} {row.ingredient.unit}
+                    {formatQty(row.toBuy)} {row.ingredient.unit}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-tomate-600">
                     {formatARS(row.cost)}

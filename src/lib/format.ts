@@ -1,12 +1,13 @@
-const arsFormatter = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-})
+export function formatQty(n: number, decimals = 2): string {
+  return n.toFixed(decimals).replace(/\.?0+$/, '').replace('.', ',')
+}
 
 export function formatARS(amount: number): string {
-  return arsFormatter.format(amount)
+  const negative = amount < 0
+  const [int, dec] = Math.abs(amount).toFixed(2).split('.')
+  const intFormatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const formatted = dec === '00' ? intFormatted : `${intFormatted},${dec}`
+  return `${negative ? '-' : ''}$ ${formatted}`
 }
 
 function capitalize(text: string): string {

@@ -11,10 +11,14 @@ interface RecipeRow {
   qty: string
 }
 
-export function DishEditor() {
-  const { dishId } = useParams()
+interface Props { embeddedId?: string; onClose?: () => void }
+
+export function DishEditor({ embeddedId, onClose }: Props = {}) {
+  const { dishId: routeId } = useParams()
   const navigate = useNavigate()
+  const dishId = embeddedId ?? routeId
   const isNew = dishId === 'nuevo'
+  const close = () => onClose ? onClose() : navigate('/admin/platos')
 
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [loading, setLoading] = useState(true)
@@ -177,21 +181,21 @@ export function DishEditor() {
       if (storageError) {
         setError('El plato se guardó pero la imagen no se pudo subir. Intentá de nuevo editando el plato.')
         setSaving(false)
-        navigate(`/admin/platos/${savedId}`)
+        close()
         return
       }
       const { data: { publicUrl } } = supabase.storage.from('dish-images').getPublicUrl(savedId)
       await supabase.from('dishes').update({ image_url: publicUrl }).eq('id', savedId)
     }
 
-    navigate('/admin/platos')
+    close()
   }
 
   async function deleteDish() {
     if (!window.confirm('¿Eliminar este plato? No se puede deshacer.')) return
     const { error: deleteError } = await supabase.from('dishes').delete().eq('id', dishId)
     if (deleteError) { setError('No se pudo eliminar el plato.'); return }
-    navigate('/admin/platos')
+    close()
   }
 
   if (loading) return <LoadingBlock />
@@ -364,7 +368,7 @@ export function DishEditor() {
             </Link>
             {!isNew && (
               <Button variant="danger" type="button" onClick={deleteDish}>
-                Eliminar plato
+                Eliminar
               </Button>
             )}
           </div>

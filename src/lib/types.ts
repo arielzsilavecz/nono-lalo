@@ -1,6 +1,6 @@
-export type Unit = 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'docena' | 'paquete'
+export type Unit = 'kg' | 'g' | 'l' | 'ml' | 'u' | 'docena' | 'paquete'
 
-export const UNITS: Unit[] = ['kg', 'g', 'l', 'ml', 'unidad', 'docena', 'paquete']
+export const UNITS: Unit[] = ['kg', 'g', 'l', 'ml', 'u', 'docena', 'paquete']
 
 export interface Ingredient {
   id: string

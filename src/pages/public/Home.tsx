@@ -76,15 +76,24 @@ export function Home() {
                 <p className="text-sm font-bold uppercase tracking-wide text-tomate-600">
                   {formatDateOnly(menu.delivery_date)}
                 </p>
-                <h3 className="mt-1 font-script text-3xl font-bold text-navy-800">{menu.title}</h3>
-                <ul className="mt-3 flex-1 space-y-1 text-sm text-navy-700">
+                <div className="mt-1 flex items-baseline justify-between gap-2">
+                  <h3 className="font-script text-3xl font-bold text-navy-800">{menu.title}</h3>
+                  {items[0] && (
+                    <span className="font-script text-3xl font-bold text-navy-800 shrink-0">{formatARS(items[0].unit_price)}</span>
+                  )}
+                </div>
+                <div className="mt-3 flex-1 space-y-1 text-sm text-navy-700">
                   {items.map((item) => (
-                    <li key={item.id} className="flex justify-between gap-2">
-                      <span>{item.dish_name}</span>
-                      <span className="font-bold">{formatARS(item.unit_price)}</span>
-                    </li>
+                    <div key={item.id}>
+                      {item.dish_description && (
+                        <p className="text-navy-600">{item.dish_description}</p>
+                      )}
+                    </div>
                   ))}
-                </ul>
+                  {menu.notes && (
+                    <p className="mt-1 text-xs italic text-navy-500">{menu.notes}</p>
+                  )}
+                </div>
                 <p className="mt-3 text-xs text-navy-500">
                   {open
                     ? (menu.order_deadline ? `Encargá hasta: ${formatDateTime(menu.order_deadline)}` : 'Disponible hasta agotar stock')

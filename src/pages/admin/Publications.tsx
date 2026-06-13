@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Menu, MenuItem, MenuStatus } from '../../lib/types'
 import { MENU_STATUS_LABELS } from '../../lib/types'
 import { formatARS, formatDateOnly, formatDateTime } from '../../lib/format'
 import { Badge, Button, Card, EmptyState, LoadingBlock, PageTitle } from '../../components/ui'
+import { ModalOverlay } from '../../components/ModalOverlay'
+import { PublicationEditor } from './PublicationEditor'
 
 const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
   draft: 'gray',
@@ -20,30 +21,35 @@ interface Publication {
 
 export function Publications() {
   const [publications, setPublications] = useState<Publication[] | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function load() {
-      const { data: menuRows } = await supabase
-        .from('menus')
-        .select('*')
-        .order('delivery_date', { ascending: false })
+  async function load() {
+    const { data: menuRows } = await supabase
+      .from('menus')
+      .select('*')
+      .order('delivery_date', { ascending: false })
 
-      const menus = (menuRows ?? []) as Menu[]
-      if (menus.length === 0) {
-        setPublications([])
-        return
-      }
-
-      const { data: itemRows } = await supabase
-        .from('menu_items')
-        .select('*')
-        .in('menu_id', menus.map((m) => m.id))
-
-      const itemByMenu = new Map((itemRows ?? []).map((i) => [i.menu_id as string, i as MenuItem]))
-      setPublications(menus.map((menu) => ({ menu, item: itemByMenu.get(menu.id) ?? null })))
+    const menus = (menuRows ?? []) as Menu[]
+    if (menus.length === 0) {
+      setPublications([])
+      return
     }
+
+    const { data: itemRows } = await supabase
+      .from('menu_items')
+      .select('*')
+      .in('menu_id', menus.map((m) => m.id))
+
+    const itemByMenu = new Map((itemRows ?? []).map((i) => [i.menu_id as string, i as MenuItem]))
+    setPublications(menus.map((menu) => ({ menu, item: itemByMenu.get(menu.id) ?? null })))
+  }
+
+  useEffect(() => { load() }, [])
+
+  function closeModal() {
+    setOpenId(null)
     load()
-  }, [])
+  }
 
   if (!publications) return <LoadingBlock />
 
@@ -52,9 +58,7 @@ export function Publications() {
       <PageTitle
         title="Publicaciones"
         action={
-          <Link to="/admin/publicaciones/nueva">
-            <Button>+ Nueva publicación</Button>
-          </Link>
+          <Button onClick={() => setOpenId('nueva')}>+ Nueva publicación</Button>
         }
       />
 
@@ -65,7 +69,12 @@ export function Publications() {
       ) : (
         <div className="space-y-3">
           {publications.map(({ menu, item }) => (
-            <Link key={menu.id} to={`/admin/publicaciones/${menu.id}`} className="block">
+            <button
+              key={menu.id}
+              type="button"
+              className="block w-full text-left"
+              onClick={() => setOpenId(menu.id)}
+            >
               <Card className="transition-colors hover:border-tomate-300">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -94,9 +103,15 @@ export function Publications() {
                   <Badge tone={STATUS_TONES[menu.status]}>{MENU_STATUS_LABELS[menu.status]}</Badge>
                 </div>
               </Card>
-            </Link>
+            </button>
           ))}
         </div>
+      )}
+
+      {openId && (
+        <ModalOverlay onClose={closeModal}>
+          <PublicationEditor embeddedId={openId} onClose={closeModal} />
+        </ModalOverlay>
       )}
     </div>
   )

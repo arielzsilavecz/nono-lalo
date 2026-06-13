@@ -4,6 +4,7 @@ import type { Ingredient, IngredientPriceEntry, Unit } from '../../lib/types'
 import { UNITS } from '../../lib/types'
 import { formatARS, formatShortDateTime } from '../../lib/format'
 import { Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, Modal, PageTitle, Select } from '../../components/ui'
+import { Pencil, Trash2 } from 'lucide-react'
 
 interface EditorState {
   id: string | null
@@ -110,7 +111,8 @@ export function Ingredients() {
                         Historial
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="secondary"
+                        title="Editar"
                         onClick={() =>
                           setEditor({
                             id: ingredient.id,
@@ -120,10 +122,10 @@ export function Ingredients() {
                           })
                         }
                       >
-                        Editar
+                        <Pencil size={14} />
                       </Button>
-                      <Button variant="danger" onClick={() => remove(ingredient)}>
-                        Eliminar
+                      <Button variant="danger" title="Eliminar" onClick={() => remove(ingredient)}>
+                        <Trash2 size={14} />
                       </Button>
                     </div>
                   </td>

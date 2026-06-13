@@ -120,10 +120,11 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+        className="flex w-full max-w-lg flex-col rounded-2xl bg-white shadow-xl"
+        style={{ maxHeight: '88vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
+        <div className="flex shrink-0 items-center justify-between border-b border-crema-200 px-6 py-4">
           <h2 className="font-script text-3xl font-bold text-navy-800">{title}</h2>
           <button
             type="button"
@@ -134,7 +135,9 @@ export function Modal({
             ×
           </button>
         </div>
-        {children}
+        <div className="overflow-y-auto p-6">
+          {children}
+        </div>
       </div>
     </div>
   )

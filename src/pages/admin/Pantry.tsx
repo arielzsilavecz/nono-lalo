@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Ingredient, PantryMovement } from '../../lib/types'
 import { PANTRY_REASON_LABELS } from '../../lib/types'
-import { formatARS, formatShortDateTime } from '../../lib/format'
+import { formatARS, formatQty, formatShortDateTime } from '../../lib/format'
+import { ShoppingCart } from 'lucide-react'
 import { Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, Modal, PageTitle } from '../../components/ui'
 
 interface MovementEditor {
@@ -96,8 +97,8 @@ export function Pantry() {
                 <tr className="border-b border-crema-200 text-left text-xs font-bold uppercase tracking-wide text-navy-500">
                   <th className="px-4 py-3">Ingrediente</th>
                   <th className="px-4 py-3 text-right">Stock</th>
-                  <th className="px-4 py-3 text-right">Valor aprox.</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
+                  <th className="px-4 py-3 text-center">Valor aproximado</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,9 +108,9 @@ export function Pantry() {
                     <tr key={ingredient.id} className="border-b border-crema-100 last:border-0">
                       <td className="px-4 py-3 font-semibold text-navy-800">{ingredient.name}</td>
                       <td className={`px-4 py-3 text-right font-bold ${currentStock < 0 ? 'text-tomate-600' : 'text-navy-900'}`}>
-                        {currentStock.toFixed(2)} {ingredient.unit}
+                        {formatQty(currentStock)} {ingredient.unit}
                       </td>
-                      <td className="px-4 py-3 text-right text-navy-600">
+                      <td className="px-4 py-3 text-center text-navy-600">
                         {formatARS(Math.max(0, currentStock) * ingredient.current_price)}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -126,7 +127,7 @@ export function Pantry() {
                               })
                             }
                           >
-                            + Compra
+                            <ShoppingCart size={14} className="mr-1" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -161,7 +162,7 @@ export function Pantry() {
                         <span className="font-semibold text-navy-800">{ingredient?.name ?? '—'}</span>
                         <span className={`font-bold ${movement.qty < 0 ? 'text-tomate-600' : 'text-emerald-700'}`}>
                           {movement.qty > 0 ? '+' : ''}
-                          {Number(movement.qty).toFixed(2)} {ingredient?.unit ?? ''}
+                          {formatQty(Number(movement.qty))} {ingredient?.unit ?? ''}
                         </span>
                       </div>
                       <p className="text-xs text-navy-500">

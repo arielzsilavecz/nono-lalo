@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Dish, DishIngredient, Ingredient } from '../../lib/types'
 import { dishCost, effectivePrice, roundPrice, suggestedPrice } from '../../lib/costing'
 import { formatARS } from '../../lib/format'
-import { Badge, Button, Card, EmptyState, LoadingBlock, PageTitle } from '../../components/ui'
+import { Button, Card, EmptyState, LoadingBlock, PageTitle } from '../../components/ui'
+import { Pencil } from 'lucide-react'
+import { ModalOverlay } from '../../components/ModalOverlay'
+import { DishEditor } from './DishEditor'
 
 export function Dishes() {
   const [dishes, setDishes] = useState<Dish[] | null>(null)
   const [recipes, setRecipes] = useState<DishIngredient[]>([])
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
+  const [openId, setOpenId] = useState<string | null>(null)
 
   async function load() {
     const [dishesRes, recipesRes, ingredientsRes] = await Promise.all([
@@ -22,12 +25,15 @@ export function Dishes() {
     setIngredients((ingredientsRes.data ?? []) as Ingredient[])
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   async function toggleActive(dish: Dish) {
     await supabase.from('dishes').update({ active: !dish.active }).eq('id', dish.id)
+    load()
+  }
+
+  function closeModal() {
+    setOpenId(null)
     load()
   }
 
@@ -40,9 +46,7 @@ export function Dishes() {
       <PageTitle
         title="Platos"
         action={
-          <Link to="/admin/platos/nuevo">
-            <Button>+ Nuevo plato</Button>
-          </Link>
+          <Button onClick={() => setOpenId('nuevo')}>+ Nuevo plato</Button>
         }
       />
 
@@ -60,7 +64,6 @@ export function Dishes() {
                 <th className="px-4 py-3 text-right">Margen</th>
                 <th className="px-4 py-3 text-right">Sugerido</th>
                 <th className="px-4 py-3 text-right">Precio</th>
-                <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
@@ -96,19 +99,19 @@ export function Dishes() {
                         <span className="ml-1 text-xs font-semibold text-navy-400">(manual)</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={dish.active ? 'green' : 'gray'}>
-                        {dish.active ? 'Activo' : 'Inactivo'}
-                      </Badge>
-                    </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" onClick={() => toggleActive(dish)}>
-                          {dish.active ? 'Desactivar' : 'Activar'}
+                      <div className="flex justify-end items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleActive(dish)}
+                          title={dish.active ? 'Desactivar' : 'Activar'}
+                          className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors duration-200 ${dish.active ? 'bg-green-500' : 'bg-red-400'}`}
+                        >
+                          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${dish.active ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                        <Button variant="secondary" title="Editar" onClick={() => setOpenId(dish.id)}>
+                          <Pencil size={14} />
                         </Button>
-                        <Link to={`/admin/platos/${dish.id}`}>
-                          <Button variant="secondary">Editar</Button>
-                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -117,6 +120,12 @@ export function Dishes() {
             </tbody>
           </table>
         </Card>
+      )}
+
+      {openId && (
+        <ModalOverlay onClose={closeModal} maxWidth="max-w-4xl">
+          <DishEditor embeddedId={openId} onClose={closeModal} />
+        </ModalOverlay>
       )}
     </div>
   )

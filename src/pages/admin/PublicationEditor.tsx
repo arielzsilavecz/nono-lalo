@@ -6,6 +6,7 @@ import { MENU_STATUS_LABELS } from '../../lib/types'
 import { dishCost, effectivePrice } from '../../lib/costing'
 import { formatARS, formatDateOnly, fromDatetimeLocal, toDatetimeLocal } from '../../lib/format'
 import { Badge, Button, Card, ErrorText, Field, Input, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
+import { Check, Copy } from 'lucide-react'
 
 const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
   draft: 'gray',
@@ -14,10 +15,14 @@ const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
   cooked: 'navy',
 }
 
-export function PublicationEditor() {
-  const { pubId } = useParams()
+interface Props { embeddedId?: string; onClose?: () => void }
+
+export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
+  const { pubId: routeId } = useParams()
   const navigate = useNavigate()
+  const pubId = embeddedId ?? routeId
   const isNew = pubId === 'nueva'
+  const close = () => onClose ? onClose() : navigate('/admin/publicaciones')
 
   const [loading, setLoading] = useState(true)
   const [dishes, setDishes] = useState<Dish[]>([])
@@ -159,7 +164,7 @@ export function PublicationEditor() {
     }
 
     setSaving(false)
-    if (isNew) navigate(`/admin/publicaciones/${savedMenuId}`, { replace: true })
+    if (isNew) { if (onClose) onClose(); else navigate(`/admin/publicaciones/${savedMenuId}`, { replace: true }) }
   }
 
   async function changeStatus(next: MenuStatus) {
@@ -229,7 +234,7 @@ export function PublicationEditor() {
     if (!window.confirm(msg)) return
     const { error: deleteError } = await supabase.from('menus').delete().eq('id', pubId)
     if (deleteError) { setError('No se pudo eliminar.'); return }
-    navigate('/admin/publicaciones')
+    close()
   }
 
   async function copyLink() {
@@ -241,7 +246,7 @@ export function PublicationEditor() {
   if (loading) return <LoadingBlock />
 
   return (
-    <div className="max-w-xl">
+    <div className="w-full">
       <PageTitle
         title={isNew ? 'Nueva publicación' : (selectedDish?.name ?? 'Editar publicación')}
         action={!isNew && <Badge tone={STATUS_TONES[status]}>{MENU_STATUS_LABELS[status]}</Badge>}
@@ -361,9 +366,6 @@ export function PublicationEditor() {
                   <Button variant="secondary" type="button" onClick={() => changeStatus('closed')}>
                     Cerrar encargos
                   </Button>
-                  <Button variant="ghost" type="button" onClick={copyLink}>
-                    {copied ? '¡Link copiado!' : 'Copiar link'}
-                  </Button>
                 </>
               )}
               {status === 'closed' && (
@@ -385,7 +387,7 @@ export function PublicationEditor() {
 
             {!isNew && status === 'published' && (
               <p className="text-xs text-navy-400">
-                Link público:{' '}
+                Link:{' '}
                 <a
                   href={`/menu/${pubId}`}
                   target="_blank"
@@ -394,6 +396,14 @@ export function PublicationEditor() {
                 >
                   {window.location.origin}/menu/{pubId}
                 </a>
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="ml-1.5 inline-flex cursor-pointer align-middle text-navy-400 hover:text-navy-700"
+                  title={copied ? '¡Copiado!' : 'Copiar link'}
+                >
+                  {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                </button>
               </p>
             )}
           </div>

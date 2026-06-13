@@ -6,6 +6,7 @@ import { MENU_STATUS_LABELS } from '../../lib/types'
 import { dishCost, effectivePrice } from '../../lib/costing'
 import { formatARS, fromDatetimeLocal, toDatetimeLocal } from '../../lib/format'
 import { Badge, Button, Card, ErrorText, Field, Input, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
+import { Trash2 } from 'lucide-react'
 
 const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
   draft: 'gray',
@@ -337,8 +338,8 @@ export function MenuEditor() {
                     <Button variant="secondary" onClick={() => setMenuStatus('published')}>
                       Publicar
                     </Button>
-                    <Button variant="danger" onClick={deleteMenu}>
-                      Eliminar
+                    <Button variant="danger" title="Eliminar menú" onClick={deleteMenu}>
+                      <Trash2 size={14} />
                     </Button>
                   </>
                 )}
