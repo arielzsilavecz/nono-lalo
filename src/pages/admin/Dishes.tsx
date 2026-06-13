@@ -73,10 +73,19 @@ export function Dishes() {
                 return (
                   <tr key={dish.id} className="border-b border-crema-100 last:border-0">
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-navy-800">{dish.name}</p>
-                      {recipe.length === 0 && (
-                        <p className="text-xs text-tomate-600">Sin receta cargada</p>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {dish.image_url ? (
+                          <img src={dish.image_url} alt={dish.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                        ) : (
+                          <div className="h-10 w-10 shrink-0 rounded-lg bg-crema-200" />
+                        )}
+                        <div>
+                          <p className="font-semibold text-navy-800">{dish.name}</p>
+                          {recipe.length === 0 && (
+                            <p className="text-xs text-tomate-600">Sin receta cargada</p>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right text-navy-700">{formatARS(cost)}</td>
                     <td className="px-4 py-3 text-right text-navy-700">{dish.margin_pct}%</td>

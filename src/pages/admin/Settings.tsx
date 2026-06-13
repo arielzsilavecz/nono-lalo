@@ -49,12 +49,12 @@ export function Settings() {
         <form onSubmit={save} className="space-y-4">
           <Field
             label="WhatsApp del emprendimiento"
-            hint="Con código de país, ej: 5491122334455. Los clientes confirman su pedido a este número."
+            hint="Con código de país, ej: 5493516812128. Los clientes confirman su pedido a este número."
           >
             <Input
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="5491122334455"
+              placeholder="5493516812128"
             />
           </Field>
           <Field

@@ -24,6 +24,7 @@ export interface Dish {
   margin_pct: number
   manual_price: number | null
   active: boolean
+  image_url: string | null
   created_at: string
 }
 
@@ -54,6 +55,7 @@ export interface MenuItem {
   unit_price: number
   max_portions: number | null
   reserved_portions: number
+  image_url: string | null
 }
 
 export type OrderStatus = 'pending' | 'confirmed' | 'delivered' | 'cancelled'

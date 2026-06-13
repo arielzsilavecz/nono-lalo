@@ -66,8 +66,13 @@ export function Home() {
           {menus.map((menu) => {
             const items = itemsByMenu.get(menu.id) ?? []
             const open = menu.order_deadline === null || Date.parse(menu.order_deadline) > Date.now()
+            const coverImage = items.find((i) => i.image_url)?.image_url ?? null
             return (
-              <Card key={menu.id} className="flex flex-col">
+              <Card key={menu.id} className="flex flex-col overflow-hidden p-0!">
+                {coverImage && (
+                  <img src={coverImage} alt={menu.title} className="h-48 w-full object-cover" />
+                )}
+                <div className="flex flex-1 flex-col p-5">
                 <p className="text-sm font-bold uppercase tracking-wide text-tomate-600">
                   {formatDateOnly(menu.delivery_date)}
                 </p>
@@ -95,6 +100,7 @@ export function Home() {
                 >
                   {open ? 'Ver menú y encargar' : 'Ver menú'}
                 </Link>
+                </div>
               </Card>
             )
           })}

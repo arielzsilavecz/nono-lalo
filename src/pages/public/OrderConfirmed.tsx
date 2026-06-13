@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { formatARS, formatDateOnly, waLink } from '../../lib/format'
-import { Mascot } from '../../components/Mascot'
+import logoImg from '/logo.png'
 import { Card } from '../../components/ui'
 
 interface ConfirmationState {
@@ -46,7 +46,7 @@ export function OrderConfirmed() {
   return (
     <div className="mx-auto max-w-lg text-center">
       <div className="flex justify-center">
-        <Mascot className="h-28 w-28" />
+        <img src={logoImg} alt="il nonno Lalo" className="h-28 w-28 object-contain drop-shadow-md" />
       </div>
       <h1 className="mt-4 font-script text-5xl font-bold text-navy-800">¡Pedido recibido!</h1>
       <p className="mt-2 text-navy-700">

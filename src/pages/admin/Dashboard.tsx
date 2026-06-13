@@ -67,7 +67,7 @@ export function Dashboard() {
         title="¿Qué cocinamos hoy?"
         action={
           <Link to="/admin/publicaciones/nueva">
-            <Button>+ Nuevo menú</Button>
+            <Button>+ Nueva publicación</Button>
           </Link>
         }
       />

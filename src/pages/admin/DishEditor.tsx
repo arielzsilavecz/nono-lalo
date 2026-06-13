@@ -24,6 +24,9 @@ export function DishEditor() {
   const [manualPrice, setManualPrice] = useState('')
   const [active, setActive] = useState(true)
   const [recipe, setRecipe] = useState<RecipeRow[]>([])
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -44,6 +47,7 @@ export function DishEditor() {
           setMarginPct(String(dish.margin_pct))
           setManualPrice(dish.manual_price !== null ? String(dish.manual_price) : '')
           setActive(dish.active)
+          setImageUrl(dish.image_url)
           setRecipe(
             ((recipeRows ?? []) as DishIngredient[]).map((row) => ({
               ingredient_id: row.ingredient_id,
@@ -82,6 +86,25 @@ export function DishEditor() {
     const firstFree = ingredients.find((i) => !used.has(i.id))
     if (!firstFree) return
     setRecipe((rows) => [...rows, { ingredient_id: firstFree.id, qty: '' }])
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPendingFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  async function removeImage() {
+    if (!window.confirm('¿Quitar la imagen de este plato?')) return
+    if (!isNew && dishId) {
+      await supabase.storage.from('dish-images').remove([dishId])
+      await supabase.from('dishes').update({ image_url: null }).eq('id', dishId)
+    }
+    setImageUrl(null)
+    setPendingFile(null)
+    setImagePreview(null)
   }
 
   async function save(e: React.FormEvent) {
@@ -147,6 +170,20 @@ export function DishEditor() {
       }
     }
 
+    if (pendingFile && savedId) {
+      const { error: storageError } = await supabase.storage
+        .from('dish-images')
+        .upload(savedId, pendingFile, { upsert: true, contentType: pendingFile.type })
+      if (storageError) {
+        setError('El plato se guardó pero la imagen no se pudo subir. Intentá de nuevo editando el plato.')
+        setSaving(false)
+        navigate(`/admin/platos/${savedId}`)
+        return
+      }
+      const { data: { publicUrl } } = supabase.storage.from('dish-images').getPublicUrl(savedId)
+      await supabase.from('dishes').update({ image_url: publicUrl }).eq('id', savedId)
+    }
+
     navigate('/admin/platos')
   }
 
@@ -194,6 +231,41 @@ export function DishEditor() {
                 />
               </Field>
             </div>
+            {/* Imagen del plato */}
+            <div>
+              <span className="mb-1 block text-sm font-bold text-navy-700">Imagen del plato</span>
+              {(imagePreview ?? imageUrl) ? (
+                <div className="relative w-full overflow-hidden rounded-xl">
+                  <img
+                    src={imagePreview ?? imageUrl!}
+                    alt={name}
+                    className="h-48 w-full object-cover"
+                  />
+                  <div className="absolute bottom-2 right-2 flex gap-2">
+                    <label className="cursor-pointer rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-navy-700 shadow hover:bg-white">
+                      Cambiar
+                      <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="cursor-pointer rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-tomate-600 shadow hover:bg-white"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-crema-300 bg-crema-50 text-navy-500 hover:border-navy-400 hover:bg-crema-100">
+                  <svg className="h-8 w-8 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm font-semibold">Subir imagen</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                </label>
+              )}
+            </div>
+
             <label className="flex items-center gap-2 text-sm font-bold text-navy-700">
               <input
                 type="checkbox"

@@ -146,8 +146,11 @@ export function PublicMenu() {
           const soldOut = remaining !== null && remaining <= 0
           const qty = quantities[item.id] ?? 0
           return (
-            <Card key={item.id} className={soldOut ? 'opacity-60' : ''}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <Card key={item.id} className={`overflow-hidden p-0! ${soldOut ? 'opacity-60' : ''}`}>
+              {item.image_url && (
+                <img src={item.image_url} alt={item.dish_name} className="h-52 w-full object-cover" />
+              )}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                 <div className="min-w-0 flex-1">
                   <h3 className="text-lg font-bold text-navy-800">{item.dish_name}</h3>
                   {item.dish_description && (
@@ -223,14 +226,14 @@ export function PublicMenu() {
                   placeholder="Ej: María González"
                 />
               </Field>
-              <Field label="Tu teléfono (WhatsApp)" hint="Con código de área, sin 0 ni 15. Ej: 1122334455">
+              <Field label="Tu teléfono (WhatsApp)" hint="Con código de área, sin 0 ni 15. Ej: 3516812128">
                 <Input
                   required
                   type="tel"
                   maxLength={20}
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="Ej: 1122334455"
+                  placeholder="Ej: 3516812128"
                 />
               </Field>
             </div>

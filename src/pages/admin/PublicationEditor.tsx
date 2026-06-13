@@ -142,6 +142,7 @@ export function PublicationEditor() {
       dish_description: dish.description,
       unit_price: Number(price),
       max_portions: maxPortions.trim() === '' ? null : Number(maxPortions),
+      image_url: dish.image_url,
     }
 
     if (isNew) {
@@ -152,6 +153,7 @@ export function PublicationEditor() {
         unit_price: Number(price),
         max_portions: maxPortions.trim() === '' ? null : Number(maxPortions),
         dish_description: dish.description,
+        image_url: dish.image_url,
       }).eq('id', menuItemId)
       if (itemError) { setError('No se pudo actualizar el plato.'); setSaving(false); return }
     }
