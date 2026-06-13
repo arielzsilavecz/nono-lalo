@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Logo } from '../components/Logo'
+import { LogOut, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Resumen', end: true },
@@ -11,7 +12,6 @@ const NAV_ITEMS = [
   { to: '/admin/platos', label: 'Platos' },
   { to: '/admin/ingredientes', label: 'Ingredientes' },
   { to: '/admin/despensa', label: 'Despensa' },
-  { to: '/admin/ajustes', label: 'Ajustes' },
 ]
 
 export function AdminLayout() {
@@ -32,13 +32,27 @@ export function AdminLayout() {
             </span>
             <span className="rounded-full bg-navy-600 px-2 py-0.5 text-xs font-bold">cocina</span>
           </NavLink>
-          <button
-            type="button"
-            onClick={signOut}
-            className="cursor-pointer rounded-full px-3 py-1 text-sm text-navy-100 hover:bg-navy-700"
-          >
-            Cerrar sesión
-          </button>
+          <div className="flex items-center gap-1">
+            <NavLink
+              to="/admin/ajustes"
+              title="Configuración"
+              className={({ isActive }) =>
+                `cursor-pointer rounded-full p-2 transition-colors ${
+                  isActive ? 'bg-tomate-500 text-white' : 'text-navy-100 hover:bg-navy-700'
+                }`
+              }
+            >
+              <Settings size={18} />
+            </NavLink>
+            <button
+              type="button"
+              onClick={signOut}
+              title="Cerrar sesión"
+              className="cursor-pointer rounded-full p-2 text-navy-100 transition-colors hover:bg-navy-700"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
         <nav className="mx-auto max-w-6xl overflow-x-auto px-4">
           <div className="flex gap-1 pb-2">
