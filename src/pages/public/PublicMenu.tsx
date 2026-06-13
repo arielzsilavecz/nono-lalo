@@ -266,7 +266,7 @@ export function PublicMenu() {
                     maxLength={200}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Calle, número, localidad"
+                    placeholder="Calle 123, Barrio"
                   />
                 </Field>
               </div>

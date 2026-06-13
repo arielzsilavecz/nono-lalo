@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import type { Customer, Dish, DishIngredient, Ingredient, Menu, MenuItem, MenuStatus } from '../../lib/types'
+import type { Dish, DishIngredient, Ingredient, Menu, MenuItem, MenuStatus } from '../../lib/types'
 import { MENU_STATUS_LABELS } from '../../lib/types'
 import { dishCost, effectivePrice } from '../../lib/costing'
 import { formatARS, formatDateOnly, fromDatetimeLocal, toDatetimeLocal } from '../../lib/format'
 import { Badge, Button, Card, ErrorText, Field, Input, InputAdorn, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
-import { Check, Copy, UserPlus } from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 
 const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
   draft: 'gray',
@@ -47,16 +47,6 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // reserva para cliente
-  const [resPhone, setResPhone] = useState('')
-  const [resName, setResName] = useState('')
-  const [resAddress, setResAddress] = useState('')
-  const [resQty, setResQty] = useState('1')
-  const [resCustomer, setResCustomer] = useState<Customer | null>(null)
-  const [resLooking, setResLooking] = useState(false)
-  const [resSaving, setResSaving] = useState(false)
-  const [resError, setResError] = useState('')
-  const [resOk, setResOk] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -269,108 +259,6 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  async function lookupPhone(phone: string) {
-    setResPhone(phone)
-    setResCustomer(null)
-    setResName('')
-    setResAddress('')
-    const trimmed = phone.trim()
-    if (trimmed.length < 6) return
-    setResLooking(true)
-    const { data } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('phone', trimmed)
-      .maybeSingle()
-    if (data) {
-      const c = data as Customer
-      setResCustomer(c)
-      setResName(c.name)
-      setResAddress(c.address ?? '')
-    }
-    setResLooking(false)
-  }
-
-  async function makeReservation(e: React.FormEvent) {
-    e.preventDefault()
-    setResError('')
-    if (!resPhone.trim()) { setResError('Ingresá el teléfono.'); return }
-    if (!resName.trim()) { setResError('Ingresá el nombre.'); return }
-    if (!menuItemId) { setResError('Guardá la publicación primero.'); return }
-    const qty = parseInt(resQty, 10)
-    if (!qty || qty < 1) { setResError('Cantidad inválida.'); return }
-    if (Number(maxPortions) > 0 && reserved + qty > Number(maxPortions)) {
-      setResError(`Solo quedan ${Number(maxPortions) - reserved} porciones disponibles.`)
-      return
-    }
-    setResSaving(true)
-    const hasAddress = resAddress.trim() !== ''
-
-    const { data: custRow, error: custErr } = await supabase
-      .from('customers')
-      .upsert(
-        { phone: resPhone.trim(), name: resName.trim(), address: resAddress.trim() || null },
-        { onConflict: 'phone' }
-      )
-      .select('id')
-      .maybeSingle()
-    if (custErr || !custRow) {
-      setResError('No se pudo registrar el cliente.')
-      setResSaving(false)
-      return
-    }
-
-    const unitPrice = Number(price)
-    const { data: orderRow, error: orderErr } = await supabase
-      .from('orders')
-      .insert({
-        menu_id: pubId,
-        customer_id: (custRow as { id: string }).id,
-        customer_name: resName.trim(),
-        customer_phone: resPhone.trim(),
-        fulfillment: hasAddress ? 'delivery' : 'pickup',
-        address: hasAddress ? resAddress.trim() : null,
-        notes: '',
-        status: 'confirmed',
-        total: unitPrice * qty,
-      })
-      .select('id')
-      .maybeSingle()
-    if (orderErr || !orderRow) {
-      setResError('No se pudo crear el pedido.')
-      setResSaving(false)
-      return
-    }
-
-    const { error: itemErr } = await supabase.from('order_items').insert({
-      order_id: (orderRow as { id: string }).id,
-      menu_item_id: menuItemId,
-      dish_name: selectedDish?.name ?? '',
-      unit_price: unitPrice,
-      qty,
-    })
-    if (itemErr) {
-      setResError('El pedido se creó pero falló al guardar el ítem.')
-      setResSaving(false)
-      return
-    }
-
-    await supabase
-      .from('menu_items')
-      .update({ reserved_portions: reserved + qty })
-      .eq('id', menuItemId)
-    setReserved((r) => r + qty)
-
-    setResOk(true)
-    setTimeout(() => setResOk(false), 3000)
-    setResPhone('')
-    setResName('')
-    setResAddress('')
-    setResQty('1')
-    setResCustomer(null)
-    setResSaving(false)
-  }
-
   if (loading) return <LoadingBlock />
 
   return (
@@ -555,59 +443,6 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
         </Card>
       </form>
 
-      {!isNew && menuItemId && (
-        <Card className="mt-5">
-          <h2 className="mb-4 flex items-center gap-2 font-script text-2xl font-bold text-navy-800">
-            <UserPlus size={18} /> Reservar para cliente
-          </h2>
-          <form onSubmit={makeReservation} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Teléfono">
-                <Input
-                  value={resPhone}
-                  onChange={(e) => lookupPhone(e.target.value)}
-                  placeholder="1123456789"
-                />
-              </Field>
-              <Field label={resCustomer ? 'Nombre (encontrado)' : 'Nombre'}>
-                <Input
-                  value={resName}
-                  onChange={(e) => setResName(e.target.value)}
-                  placeholder="María García"
-                  disabled={resLooking}
-                />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Dirección (opcional — si recibe delivery)">
-                <Input
-                  value={resAddress}
-                  onChange={(e) => setResAddress(e.target.value)}
-                  placeholder="Av. Corrientes 1234"
-                />
-              </Field>
-              <Field label="Porciones">
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={resQty}
-                  onChange={(e) => setResQty(e.target.value)}
-                />
-              </Field>
-            </div>
-            {resError && <ErrorText>{resError}</ErrorText>}
-            {resOk && (
-              <p className="flex items-center gap-1 text-sm font-semibold text-emerald-700">
-                <Check size={14} /> Reserva confirmada
-              </p>
-            )}
-            <Button type="submit" disabled={resSaving}>
-              {resSaving ? 'Reservando…' : 'Confirmar reserva'}
-            </Button>
-          </form>
-        </Card>
-      )}
     </div>
   )
 }

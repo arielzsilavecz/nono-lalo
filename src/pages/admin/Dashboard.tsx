@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { DishIngredient, Ingredient, Menu, MenuItem } from '../../lib/types'
-import { formatARS, formatDateOnly, formatDateTime, todayDateValue } from '../../lib/format'
+import { formatARS, formatCookingTime, formatDateOnly, formatDateTime, todayDateValue } from '../../lib/format'
 import { Button, Card, LoadingBlock, PageTitle } from '../../components/ui'
 import { Clock, Pencil } from 'lucide-react'
 
@@ -17,13 +17,6 @@ interface Stats {
   ingredients: number
 }
 
-function formatCookingTime(minutes: number): string {
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h === 0) return `${m} min`
-  if (m === 0) return `${h} h`
-  return `${h} h ${m} min`
-}
 
 export function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)

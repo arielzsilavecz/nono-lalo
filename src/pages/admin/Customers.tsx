@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Customer, Order } from '../../lib/types'
 import { FULFILLMENT_LABELS, ORDER_STATUS_LABELS } from '../../lib/types'
-import { formatARS, formatShortDateTime, waLink } from '../../lib/format'
+import { formatARS, formatDateOnly, formatShortDateTime, waLink } from '../../lib/format'
 import {
   Badge,
   Button,

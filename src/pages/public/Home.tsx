@@ -67,8 +67,11 @@ export function Home() {
             const items = itemsByMenu.get(menu.id) ?? []
             const open = menu.order_deadline === null || Date.parse(menu.order_deadline) > Date.now()
             const coverImage = items.find((i) => i.image_url)?.image_url ?? null
+            const soldOut = items[0] !== undefined
+              && items[0].max_portions !== null
+              && items[0].reserved_portions >= items[0].max_portions
             return (
-              <Card key={menu.id} className="flex flex-col overflow-hidden p-0!">
+              <Card key={menu.id} className="relative flex flex-col overflow-hidden p-0!">
                 {coverImage && (
                   <img src={coverImage} alt={menu.title} className="h-48 w-full object-cover" />
                 )}
@@ -99,17 +102,32 @@ export function Home() {
                     ? (menu.order_deadline ? `Encargá hasta: ${formatDateTime(menu.order_deadline)}` : 'Disponible hasta agotar stock')
                     : 'Encargos cerrados'}
                 </p>
-                <Link
-                  to={`/menu/${menu.id}`}
-                  className={`mt-3 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-bold transition-colors ${
-                    open
-                      ? 'bg-tomate-500 text-white hover:bg-tomate-600'
-                      : 'bg-crema-200 text-navy-600 hover:bg-crema-300'
-                  }`}
-                >
-                  {open ? 'Ver menú y encargar' : 'Ver menú'}
-                </Link>
+                {soldOut ? (
+                  <span className="mt-3 inline-flex items-center justify-center rounded-full bg-crema-200 px-4 py-2 text-sm font-bold text-navy-400">
+                    Sin stock
+                  </span>
+                ) : (
+                  <Link
+                    to={`/menu/${menu.id}`}
+                    className={`mt-3 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+                      open
+                        ? 'bg-tomate-500 text-white hover:bg-tomate-600'
+                        : 'bg-crema-200 text-navy-600 hover:bg-crema-300'
+                    }`}
+                  >
+                    {open ? 'Ver menú y encargar' : 'Ver menú'}
+                  </Link>
+                )}
                 </div>
+
+              {soldOut && (
+                <div className="absolute inset-0 overflow-hidden rounded-2xl cursor-not-allowed">
+                  <div className="absolute inset-0 bg-gray-400/50" />
+                  <div className="absolute inset-x-[-30%] top-1/2 -translate-y-1/2 rotate-[-35deg] bg-gray-700/80 py-3 text-center text-2xl font-black tracking-[0.6em] text-white/90 shadow-lg">
+                    AGOTADO
+                  </div>
+                </div>
+              )}
               </Card>
             )
           })}

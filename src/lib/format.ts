@@ -32,6 +32,7 @@ export function formatDateTime(iso: string): string {
     month: 'long',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
   return `${capitalize(formatted)} hs`
 }
@@ -43,6 +44,7 @@ export function formatShortDateTime(iso: string): string {
     year: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -56,6 +58,14 @@ export function toDatetimeLocal(iso: string): string {
 /** Valor de <input type="datetime-local"> -> ISO (UTC). */
 export function fromDatetimeLocal(value: string): string {
   return new Date(value).toISOString()
+}
+
+export function formatCookingTime(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m} min`
+  if (m === 0) return `${h} h`
+  return `${h} h ${m} min`
 }
 
 export function todayDateValue(): string {
