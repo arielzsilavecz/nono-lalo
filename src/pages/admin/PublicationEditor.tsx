@@ -5,7 +5,7 @@ import type { Customer, Dish, DishIngredient, Ingredient, Menu, MenuItem, MenuSt
 import { MENU_STATUS_LABELS } from '../../lib/types'
 import { dishCost, effectivePrice } from '../../lib/costing'
 import { formatARS, formatDateOnly, fromDatetimeLocal, toDatetimeLocal } from '../../lib/format'
-import { Badge, Button, Card, ErrorText, Field, Input, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
+import { Badge, Button, Card, ErrorText, Field, Input, InputAdorn, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
 import { Check, Copy, UserPlus } from 'lucide-react'
 
 const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
@@ -40,6 +40,7 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
   const [notes, setNotes] = useState('')
 
   // saved menu_item id (for existing publications)
+  const [cookingTime, setCookingTime] = useState('')
   const [menuItemId, setMenuItemId] = useState<string | null>(null)
   const [reserved, setReserved] = useState(0)
   const [copied, setCopied] = useState(false)
@@ -82,6 +83,7 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
           setOpenUntilSoldOut(menu.order_deadline === null)
           if (menu.order_deadline !== null) setDeadlineLocal(toDatetimeLocal(menu.order_deadline))
           setNotes(menu.notes)
+          setCookingTime(menu.cooking_time !== null ? String(menu.cooking_time) : '')
         }
         if (item) {
           setMenuItemId(item.id)
@@ -132,6 +134,17 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
     if (openUntilSoldOut && !maxPortions.trim()) { setError('Definí el cupo máximo si publicás hasta agotar stock.'); return }
     if (Number(price) < 0) { setError('El precio no es válido.'); return }
 
+    if (isNew) {
+      if (!openUntilSoldOut && Date.parse(fromDatetimeLocal(deadlineLocal)) <= Date.now()) {
+        setError('El cierre de encargos ya pasó. Actualizalo antes de publicar.')
+        return
+      }
+      if (openUntilSoldOut && !maxPortions.trim()) {
+        setError('Definí el cupo máximo antes de publicar.')
+        return
+      }
+    }
+
     setSaving(true)
     const dish = dishes.find((d) => d.id === selectedDishId)!
     const menuRow = {
@@ -139,6 +152,8 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
       delivery_date: deliveryDate,
       order_deadline: openUntilSoldOut ? null : fromDatetimeLocal(deadlineLocal),
       notes: notes.trim(),
+      cooking_time: cookingTime.trim() === '' ? null : Number(cookingTime),
+      ...(isNew ? { status: 'published' } : {}),
     }
 
     let savedMenuId = pubId
@@ -418,9 +433,10 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
               Publicar hasta agotar stock
             </label>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Precio por porción ($)" hint={cost > 0 ? `Costo: ${formatARS(cost)}` : undefined}>
-                <Input
+            <div className="grid grid-cols-3 gap-4">
+              <Field label="Precio por porción" hint={cost > 0 ? `Costo: ${formatARS(cost)}` : undefined}>
+                <InputAdorn
+                  prefix="$"
                   required
                   type="number"
                   min="0"
@@ -437,6 +453,22 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
                   value={maxPortions}
                   onChange={(e) => setMaxPortions(e.target.value)}
                   placeholder="Sin límite"
+                />
+              </Field>
+              <Field
+                label="Tiempo de cocción"
+                hint={cookingTime && Number(cookingTime) >= 60
+                  ? `${Math.floor(Number(cookingTime) / 60)} h ${Number(cookingTime) % 60 > 0 ? `${Number(cookingTime) % 60} min` : ''}`.trim()
+                  : 'Opcional'}
+              >
+                <InputAdorn
+                  suffix="min"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={cookingTime}
+                  onChange={(e) => setCookingTime(e.target.value)}
+                  placeholder="90"
                 />
               </Field>
             </div>
@@ -461,7 +493,7 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
 
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={saving || dishes.length === 0}>
-                {saving ? 'Guardando…' : isNew ? 'Crear publicación' : 'Guardar cambios'}
+                {saving ? 'Guardando…' : isNew ? 'Crear y publicar' : 'Guardar cambios'}
               </Button>
 
               {!isNew && status === 'draft' && (

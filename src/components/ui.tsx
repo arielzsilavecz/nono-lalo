@@ -34,6 +34,32 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
   return <input className={`${FIELD_STYLES} ${className}`} {...props} />
 }
 
+export function InputAdorn({
+  prefix,
+  suffix,
+  className = '',
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { prefix?: string; suffix?: string }) {
+  return (
+    <div className="relative">
+      {prefix && (
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-sm text-navy-400">
+          {prefix}
+        </span>
+      )}
+      <input
+        className={`${FIELD_STYLES} ${prefix ? 'pl-7' : ''} ${suffix ? 'pr-10' : ''} ${className}`}
+        {...props}
+      />
+      {suffix && (
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 select-none text-sm text-navy-400">
+          {suffix}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select className={`${FIELD_STYLES} ${className}`} {...props} />
 }

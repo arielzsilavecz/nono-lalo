@@ -43,6 +43,7 @@ export interface Menu {
   order_deadline: string | null
   status: MenuStatus
   notes: string
+  cooking_time: number | null
   created_at: string
 }
 
