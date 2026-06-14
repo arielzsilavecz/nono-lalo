@@ -286,6 +286,7 @@ export function Dashboard() {
       )
     }
     await supabase.from('menus').update({ status: 'cooked' }).eq('id', menuId)
+    await supabase.from('orders').update({ status: 'ready' }).eq('menu_id', menuId).eq('status', 'confirmed')
     setOrderDetails(null)
     setExpanded(false)
     load()
@@ -504,7 +505,7 @@ export function Dashboard() {
               {expanded && (
                 <div className="mt-4 border-t border-crema-200 pt-4">
                   {/* Ingresos + ticket + clientes en una fila */}
-                  <div className="mb-4 flex flex-wrap items-start gap-6">
+                  <div className="mb-4 flex flex-wrap justify-center gap-8">
                     <div className="text-center">
                       <p className="text-xs font-semibold text-navy-400">ingresos estimados</p>
                       <p className="text-xl font-bold text-tomate-600">{formatARS(stats.nextMenuRevenue)}</p>
@@ -518,10 +519,12 @@ export function Dashboard() {
                     {stats.nextMenuOrders > 0 && (
                       <div className="text-center">
                         <p className="text-xs font-semibold text-navy-400">clientes</p>
-                        <div className="flex gap-3 text-sm font-semibold text-navy-600">
-                          <span><span className="font-bold text-emerald-600">{stats.nextMenuNewCustomers}</span> nuevos</span>
-                          <span><span className="font-bold text-navy-700">{stats.nextMenuReturningCustomers}</span> recurrentes</span>
-                        </div>
+                        <p className="text-xl font-bold text-navy-700">
+                          <span className="text-emerald-600">{stats.nextMenuNewCustomers}</span>
+                          <span className="mx-1 text-sm font-semibold text-navy-400">nuevos</span>
+                          {stats.nextMenuReturningCustomers}
+                          <span className="ml-1 text-sm font-semibold text-navy-400">recurrentes</span>
+                        </p>
                       </div>
                     )}
                   </div>

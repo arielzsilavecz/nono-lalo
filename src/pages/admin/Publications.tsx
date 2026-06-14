@@ -7,7 +7,7 @@ import { geocode, haversineKm } from '../../lib/geo'
 import { Badge, Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, PageTitle, Textarea } from '../../components/ui'
 import { ModalOverlay } from '../../components/ModalOverlay'
 import { PublicationEditor } from './PublicationEditor'
-import { CalendarPlus, Check, Clock, MapPin, UserPlus } from 'lucide-react'
+import { CalendarPlus, Check, Clock, MapPin, RotateCcw, UserPlus } from 'lucide-react'
 
 interface DeliverySettings {
   pickupAddress: string
@@ -354,7 +354,14 @@ export function Publications() {
       .select('*')
       .order('delivery_date', { ascending: false })
 
-    const menus = (menuRows ?? []) as Menu[]
+    const today = new Date().toISOString().slice(0, 10)
+    const menus = ((menuRows ?? []) as Menu[]).sort((a, b) => {
+      const aUp = a.delivery_date >= today
+      const bUp = b.delivery_date >= today
+      if (aUp !== bUp) return aUp ? -1 : 1
+      if (aUp) return a.delivery_date.localeCompare(b.delivery_date)
+      return b.delivery_date.localeCompare(a.delivery_date)
+    })
     if (menus.length === 0) { setPublications([]); return }
 
     const { data: itemRows } = await supabase
@@ -367,6 +374,12 @@ export function Publications() {
   }
 
   useEffect(() => { load() }, [])
+
+  async function uncookMenu(menu: Menu) {
+    await supabase.from('menus').update({ status: 'published' }).eq('id', menu.id)
+    await supabase.from('orders').update({ status: 'confirmed' }).eq('menu_id', menu.id).eq('status', 'ready')
+    load()
+  }
 
   function closeModal() { setOpenId(null); load() }
   function closeReserve() { setReserveFor(null); load() }
@@ -431,6 +444,16 @@ export function Publications() {
                       className="cursor-pointer rounded-full p-2 text-navy-400 transition-colors hover:bg-navy-100 hover:text-navy-700"
                     >
                       <CalendarPlus size={18} />
+                    </button>
+                  )}
+                  {menu.status === 'cooked' && (
+                    <button
+                      type="button"
+                      title="Desmarcar cocinado"
+                      onClick={() => uncookMenu(menu)}
+                      className="cursor-pointer rounded-full p-2 text-navy-400 transition-colors hover:bg-amber-100 hover:text-amber-700"
+                    >
+                      <RotateCcw size={16} />
                     </button>
                   )}
                   <Badge tone={STATUS_TONES[menu.status]}>{MENU_STATUS_LABELS[menu.status]}</Badge>

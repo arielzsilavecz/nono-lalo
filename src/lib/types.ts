@@ -59,7 +59,7 @@ export interface MenuItem {
   image_url: string | null
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'ready' | 'delivered' | 'cancelled'
 export type Fulfillment = 'pickup' | 'delivery'
 
 export interface Order {
@@ -112,6 +112,7 @@ export const MENU_STATUS_LABELS: Record<MenuStatus, string> = {
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Pendiente',
   confirmed: 'Confirmado',
+  ready: 'Listo',
   delivered: 'Entregado',
   cancelled: 'Cancelado',
 }

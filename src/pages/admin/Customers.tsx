@@ -259,7 +259,7 @@ export function Customers() {
                   <td className="px-4 py-3 font-semibold text-navy-800">{c.name}</td>
                   <td className="px-4 py-3 text-center">
                     <a
-                      href={waLink(c.phone, `¡Hola ${c.name}! Te escribimos de il nonno Lalo.`)}
+                      href={waLink(c.phone, `¡Hola ${c.name}! Te escribimos de _il nonno Lalo_.`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
