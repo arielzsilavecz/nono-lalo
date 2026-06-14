@@ -334,22 +334,26 @@ export function PublicMenu() {
                     placeholder="Calle 123, Barrio"
                   />
                 </Field>
-                <button
-                  type="button"
-                  onClick={calcDeliveryCost}
-                  disabled={!address.trim() || geocoding || cooldown}
-                  className="flex items-center gap-1.5 text-sm font-bold text-navy-600 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <MapPin size={13} />
-                  {geocoding ? 'Calculando…' : cooldown ? 'Calculado ✓' : 'Calcular costo de envío'}
-                </button>
-                {!geocoding && deliveryCost !== null && (
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-navy-700">
-                    <MapPin size={13} className="shrink-0 text-tomate-500" />
-                    {deliveryKm !== null && <span>{deliveryKm.toFixed(1)} km · </span>}
-                    Envío: <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
-                  </p>
-                )}
+                <div className="flex items-center gap-1.5 text-sm font-bold text-navy-600">
+                  <button
+                    type="button"
+                    onClick={calcDeliveryCost}
+                    disabled={!address.trim() || geocoding || cooldown}
+                    className="flex items-center gap-1 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <MapPin size={13} />
+                    {geocoding ? 'Calculando…' : 'Calcular costo de envío'}
+                  </button>
+                  {!geocoding && deliveryCost !== null && (
+                    <>
+                      <span className="text-navy-400">›</span>
+                      <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
+                      {deliveryKm !== null && (
+                        <span className="font-semibold text-navy-500">({deliveryKm.toFixed(1).replace('.', ',')} km)</span>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
 

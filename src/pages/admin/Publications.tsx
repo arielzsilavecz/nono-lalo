@@ -291,22 +291,26 @@ function ReservationModal({
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 placeholder="Dirección de entrega…"
               />
-              <button
-                type="button"
-                onClick={calcDeliveryCost}
-                disabled={!deliveryAddress.trim() || geocoding || cooldown}
-                className="flex items-center gap-1.5 text-sm font-bold text-navy-600 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <MapPin size={13} />
-                {geocoding ? 'Calculando…' : cooldown ? 'Calculado ✓' : 'Calcular costo de envío'}
-              </button>
-              {!geocoding && deliveryCost !== null && (
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-navy-700">
-                  <MapPin size={13} className="text-tomate-500 shrink-0" />
-                  {deliveryKm !== null && <span>{deliveryKm.toFixed(1)} km · </span>}
-                  Envío: <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
-                </p>
-              )}
+              <div className="flex items-center gap-1.5 text-sm font-bold text-navy-600">
+                <button
+                  type="button"
+                  onClick={calcDeliveryCost}
+                  disabled={!deliveryAddress.trim() || geocoding || cooldown}
+                  className="flex items-center gap-1 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <MapPin size={13} />
+                  {geocoding ? 'Calculando…' : 'Calcular costo de envío'}
+                </button>
+                {!geocoding && deliveryCost !== null && (
+                  <>
+                    <span className="text-navy-400">›</span>
+                    <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
+                    {deliveryKm !== null && (
+                      <span className="font-semibold text-navy-500">({deliveryKm.toFixed(1).replace('.', ',')} km)</span>
+                    )}
+                  </>
+                )}
+              </div>
               {!deliverySettings?.mapsApiKey && !deliverySettings?.fixedPrice && (
                 <p className="text-xs text-amber-600">Configurá la clave de Google Maps en Ajustes para ver el costo estimado.</p>
               )}
@@ -387,7 +391,7 @@ export function Publications() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
-                  className="min-w-0 flex-1 text-left"
+                  className="min-w-0 flex-1 cursor-pointer text-left"
                   onClick={() => setOpenId(menu.id)}
                 >
                   <p className="text-sm font-bold uppercase tracking-wide text-tomate-600">
