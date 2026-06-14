@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Menu, MenuItem } from '../../lib/types'
 import { formatARS, formatDateOnly, formatDateTime, todayDateValue } from '../../lib/format'
-import logoImg from '/logo.png'
 import { Card, EmptyState, LoadingBlock } from '../../components/ui'
 
 export function Home() {
@@ -43,22 +42,12 @@ export function Home() {
 
   return (
     <div>
-      {/* Hero estilo pizarra */}
-      <section className="mb-10 rounded-3xl border-4 border-navy-800 bg-crema-100 px-6 py-4 text-center shadow-md">
-        <div className="flex flex-col items-center gap-2">
-          <img src={logoImg} alt="il nonno Lalo" className="h-56 w-56 object-contain drop-shadow-md" />
-          <p className="max-w-xl font-script text-2xl text-navy-700 sm:text-3xl">
-            Elaboración de pastas y comidas 100% caseras, con ingredientes frescos.
-          </p>
-        </div>
-      </section>
-
-      <h2 className="mb-4 font-script text-4xl font-bold text-navy-800">Próximos menús</h2>
+      <h2 className="mb-4 font-script text-4xl font-bold text-navy-800">Próximos menúes</h2>
 
       {loading ? (
         <LoadingBlock />
       ) : menus.length === 0 ? (
-        <EmptyState title="Todavía no hay menús publicados">
+        <EmptyState title="Todavía no hay menúes publicados">
           ¡Volvé pronto! El nonno está pensando qué cocinar.
         </EmptyState>
       ) : (

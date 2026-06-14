@@ -72,7 +72,7 @@ create table public.dish_ingredients (
 
 create index idx_dish_ingredients_ingredient on public.dish_ingredients (ingredient_id);
 
--- =============================== MENÚS ===============================
+-- =============================== menúes ===============================
 
 create table public.menus (
   id uuid primary key default gen_random_uuid(),
@@ -344,7 +344,7 @@ create policy admin_all on public.pantry_movements
 create policy admin_all on public.app_settings
   for all to authenticated using (true) with check (true);
 
--- Público (carta): solo menús no borrador y los ajustes (ej: WhatsApp)
+-- Público (carta): solo menúes no borrador y los ajustes (ej: WhatsApp)
 create policy public_read_menus on public.menus
   for select to anon using (status <> 'draft');
 create policy public_read_menu_items on public.menu_items

@@ -81,7 +81,7 @@ export function AdminLayout() {
       </main>
 
       <div className="hidden print:block print:px-4 print:text-center">
-        <Logo className="text-2xl" />
+        <Logo height="h-7" />
       </div>
     </div>
   )

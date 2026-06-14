@@ -39,7 +39,7 @@ export function ChangePassword() {
     <div className="flex min-h-screen items-center justify-center bg-crema-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <Logo className="text-4xl" />
+          <Logo height="h-10" />
           <p className="mt-2 text-sm font-semibold text-navy-700">
             Es tu primer acceso — elegí tu contraseña
           </p>

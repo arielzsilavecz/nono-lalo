@@ -31,6 +31,7 @@ interface OrderInput {
   address?: string;
   notes?: string;
   items: OrderItemInput[];
+  delivery_cost?: number;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -109,6 +110,7 @@ Deno.serve(async (req) => {
     p_address: body.address?.trim() ?? null,
     p_notes: body.notes?.trim() ?? "",
     p_items: items,
+    p_delivery_cost: typeof body.delivery_cost === "number" && body.delivery_cost > 0 ? body.delivery_cost : 0,
   });
 
   if (error) {

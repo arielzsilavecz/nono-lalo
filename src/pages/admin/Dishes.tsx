@@ -27,11 +27,6 @@ export function Dishes() {
 
   useEffect(() => { load() }, [])
 
-  async function toggleActive(dish: Dish) {
-    await supabase.from('dishes').update({ active: !dish.active }).eq('id', dish.id)
-    load()
-  }
-
   function closeModal() {
     setOpenId(null)
     load()
@@ -58,13 +53,13 @@ export function Dishes() {
         <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-crema-200 text-left text-xs font-bold uppercase tracking-wide text-navy-500">
-                <th className="px-4 py-3">Plato</th>
-                <th className="px-4 py-3 text-right">Costo/porción</th>
-                <th className="px-4 py-3 text-right">Margen</th>
-                <th className="px-4 py-3 text-right">Sugerido</th>
-                <th className="px-4 py-3 text-right">Precio</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
+              <tr className="border-b border-crema-200 text-xs font-bold uppercase tracking-wide text-navy-500">
+                <th className="px-4 py-3 text-left">Plato</th>
+                <th className="px-4 py-3 text-center">Costo/porción</th>
+                <th className="px-4 py-3 text-center">Margen</th>
+                <th className="px-4 py-3 text-center">Sugerido</th>
+                <th className="px-4 py-3 text-center">Precio</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -90,29 +85,19 @@ export function Dishes() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-navy-700">{formatARS(cost)}</td>
-                    <td className="px-4 py-3 text-right text-navy-700">{dish.margin_pct}%</td>
-                    <td className="px-4 py-3 text-right text-navy-700">{formatARS(suggested)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-navy-900">
+                    <td className="px-4 py-3 text-center text-navy-700">{formatARS(cost)}</td>
+                    <td className="px-4 py-3 text-center text-navy-700">{dish.margin_pct}%</td>
+                    <td className="px-4 py-3 text-center text-navy-700">{formatARS(suggested)}</td>
+                    <td className="px-4 py-3 text-center font-bold text-navy-900">
                       {formatARS(price)}
                       {dish.manual_price !== null && (
                         <span className="ml-1 text-xs font-semibold text-navy-400">(manual)</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleActive(dish)}
-                          title={dish.active ? 'Desactivar' : 'Activar'}
-                          className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors duration-200 ${dish.active ? 'bg-green-500' : 'bg-red-400'}`}
-                        >
-                          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${dish.active ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                        <Button variant="secondary" title="Editar" onClick={() => setOpenId(dish.id)}>
-                          <Pencil size={14} />
-                        </Button>
-                      </div>
+                    <td className="px-4 py-3 text-center">
+                      <Button variant="secondary" title="Editar" onClick={() => setOpenId(dish.id)}>
+                        <Pencil size={14} />
+                      </Button>
                     </td>
                   </tr>
                 )

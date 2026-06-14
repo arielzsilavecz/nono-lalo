@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from '../../lib/supabase'
 import type { Fulfillment, Menu, MenuItem } from '../../lib/types'
-import { formatARS, formatDateOnly, formatDateTime } from '../../lib/format'
+import { formatARS, formatDateOnly, formatDateTime, roundDeliveryCost } from '../../lib/format'
+import { geocode, haversineKm } from '../../lib/geo'
 import { Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, Textarea } from '../../components/ui'
+import { MapPin } from 'lucide-react'
 
 const ERROR_MESSAGES: Record<string, string> = {
   MENU_NOT_AVAILABLE: 'Este menú ya no está disponible para encargos.',
@@ -11,6 +13,14 @@ const ERROR_MESSAGES: Record<string, string> = {
   ITEM_NOT_FOUND: 'Alguno de los platos ya no está disponible. Actualizá la página.',
   ADDRESS_REQUIRED: 'Necesitamos tu dirección para el delivery.',
   INVALID_PHONE: 'Revisá el teléfono: necesitamos un número para coordinar la entrega.',
+}
+
+interface DeliverySettings {
+  pickupAddress: string
+  mapsApiKey: string
+  basePrice: number
+  pricePerKm: number
+  fixedPrice: boolean
 }
 
 export function PublicMenu() {
@@ -30,6 +40,13 @@ export function PublicMenu() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  // envío
+  const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null)
+  const [deliveryCost, setDeliveryCost] = useState<number | null>(null)
+  const [deliveryKm, setDeliveryKm] = useState<number | null>(null)
+  const [geocoding, setGeocoding] = useState(false)
+  const [cooldown, setCooldown] = useState(false)
+
   const load = useCallback(async () => {
     if (!menuId) return
     const [{ data: menuRow }, { data: itemRows }] = await Promise.all([
@@ -41,9 +58,51 @@ export function PublicMenu() {
     setLoading(false)
   }, [menuId])
 
+  useEffect(() => { load() }, [load])
+
   useEffect(() => {
-    load()
-  }, [load])
+    supabase.from('app_settings').select('*').then(({ data }) => {
+      const s: Record<string, string> = {}
+      for (const row of data ?? []) s[row.key] = row.value
+      setDeliverySettings({
+        pickupAddress: s['pickup_address'] ?? '',
+        mapsApiKey: s['google_maps_api_key'] ?? '',
+        basePrice: parseFloat(s['delivery_base_price'] ?? '0') || 0,
+        pricePerKm: parseFloat(s['delivery_price_per_km'] ?? '0') || 0,
+        fixedPrice: s['delivery_fixed_price'] === 'true',
+      })
+    })
+  }, [])
+
+  // resetear cuando cambia la dirección o el tipo de entrega
+  useEffect(() => {
+    setDeliveryCost(null)
+    setDeliveryKm(null)
+  }, [fulfillment, address])
+
+  async function calcDeliveryCost() {
+    if (!deliverySettings || !address.trim() || cooldown || geocoding) return
+
+    if (deliverySettings.fixedPrice) {
+      setDeliveryCost(roundDeliveryCost(deliverySettings.basePrice))
+      return
+    }
+
+    if (!deliverySettings.mapsApiKey || !deliverySettings.pickupAddress) return
+
+    setGeocoding(true)
+    const [origin, dest] = await Promise.all([
+      geocode(deliverySettings.pickupAddress, deliverySettings.mapsApiKey),
+      geocode(address.trim() + ', Argentina', deliverySettings.mapsApiKey),
+    ])
+    setGeocoding(false)
+    if (!origin || !dest) return
+    const km = haversineKm(origin.lat, origin.lng, dest.lat, dest.lng)
+    setDeliveryKm(km)
+    setDeliveryCost(roundDeliveryCost(deliverySettings.basePrice + km * deliverySettings.pricePerKm))
+    setCooldown(true)
+    setTimeout(() => setCooldown(false), 5000)
+  }
 
   const open = menu !== null && menu.status === 'published' &&
     (menu.order_deadline === null || Date.parse(menu.order_deadline) > Date.now())
@@ -55,7 +114,8 @@ export function PublicMenu() {
         .filter((entry) => entry.qty > 0),
     [items, quantities],
   )
-  const total = cart.reduce((sum, { item, qty }) => sum + item.unit_price * qty, 0)
+  const subtotal = cart.reduce((sum, { item, qty }) => sum + item.unit_price * qty, 0)
+  const total = subtotal + (fulfillment === 'delivery' && deliveryCost !== null ? deliveryCost : 0)
 
   function remainingFor(item: MenuItem): number | null {
     if (item.max_portions === null) return null
@@ -90,6 +150,7 @@ export function PublicMenu() {
           address: fulfillment === 'delivery' ? address : undefined,
           notes,
           items: cart.map(({ item, qty }) => ({ menu_item_id: item.id, qty })),
+          delivery_cost: fulfillment === 'delivery' && deliveryCost !== null ? deliveryCost : 0,
         }),
       })
       const body = await response.json()
@@ -124,7 +185,7 @@ export function PublicMenu() {
   if (loading) return <LoadingBlock />
 
   if (!menu) {
-    return <EmptyState title="Menú no encontrado">Volvé al inicio para ver los menús disponibles.</EmptyState>
+    return <EmptyState title="Menú no encontrado">Volvé al inicio para ver los menúes disponibles.</EmptyState>
   }
 
   return (
@@ -203,12 +264,16 @@ export function PublicMenu() {
               <ul className="mt-3 space-y-1 text-sm text-navy-700">
                 {cart.map(({ item, qty }) => (
                   <li key={item.id} className="flex justify-between">
-                    <span>
-                      {qty} × {item.dish_name}
-                    </span>
+                    <span>{qty} × {item.dish_name}</span>
                     <span className="font-bold">{formatARS(item.unit_price * qty)}</span>
                   </li>
                 ))}
+                {fulfillment === 'delivery' && deliveryCost !== null && (
+                  <li className="flex justify-between text-navy-600">
+                    <span className="flex items-center gap-1"><MapPin size={12} /> Envío</span>
+                    <span className="font-bold">{formatARS(deliveryCost)}</span>
+                  </li>
+                )}
                 <li className="flex justify-between border-t border-crema-200 pt-2 text-base font-bold text-navy-900">
                   <span>Total</span>
                   <span>{formatARS(total)}</span>
@@ -259,7 +324,7 @@ export function PublicMenu() {
             </div>
 
             {fulfillment === 'delivery' && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-2">
                 <Field label="Dirección de entrega">
                   <Input
                     required
@@ -269,6 +334,22 @@ export function PublicMenu() {
                     placeholder="Calle 123, Barrio"
                   />
                 </Field>
+                <button
+                  type="button"
+                  onClick={calcDeliveryCost}
+                  disabled={!address.trim() || geocoding || cooldown}
+                  className="flex items-center gap-1.5 text-sm font-bold text-navy-600 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <MapPin size={13} />
+                  {geocoding ? 'Calculando…' : cooldown ? 'Calculado ✓' : 'Calcular costo de envío'}
+                </button>
+                {!geocoding && deliveryCost !== null && (
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-navy-700">
+                    <MapPin size={13} className="shrink-0 text-tomate-500" />
+                    {deliveryKm !== null && <span>{deliveryKm.toFixed(1)} km · </span>}
+                    Envío: <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
+                  </p>
+                )}
               </div>
             )}
 

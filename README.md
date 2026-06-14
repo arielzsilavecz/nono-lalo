@@ -7,7 +7,7 @@ Tablero de gestión + carta online para el emprendimiento de comidas caseras **i
 
 **Carta pública** (sin registro, para los clientes):
 
-- Menús publicados por fecha de entrega, con platos, precios y porciones disponibles.
+- menúes publicados por fecha de entrega, con platos, precios y porciones disponibles.
 - Encargo/reserva antes de cocinar: el cliente deja nombre y teléfono, elige retiro o
   delivery y confirma. Paga al recibir (efectivo o transferencia).
 - Botón "Confirmar por WhatsApp" con el detalle del pedido prearmado.
@@ -17,7 +17,7 @@ Tablero de gestión + carta online para el emprendimiento de comidas caseras **i
 - **Ingredientes** con precio por unidad e historial de precios.
 - **Platos** con receta por porción → costo automático, margen de ganancia propio de
   cada plato y precio sugerido (o manual).
-- **Menús por fecha** con cierre de encargos, cupos opcionales por plato y precios
+- **menúes por fecha** con cierre de encargos, cupos opcionales por plato y precios
   congelados al publicar.
 - **Pedidos**: bandeja con estados (pendiente → confirmado → entregado / cancelado);
   al cancelar se liberan las porciones reservadas.
@@ -92,7 +92,7 @@ src/
   lib/           cliente supabase, tipos, formato, costeo
   pages/
     public/      Home, menú con carrito, confirmación
-    admin/       login, resumen, menús, pedidos, compras,
+    admin/       login, resumen, menúes, pedidos, compras,
                  platos, ingredientes, despensa, ajustes
 supabase/
   migrations/    esquema, RLS, función place_order

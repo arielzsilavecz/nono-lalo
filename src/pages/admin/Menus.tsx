@@ -29,7 +29,7 @@ export function Menus() {
   return (
     <div>
       <PageTitle
-        title="Menús"
+        title="menúes"
         action={
           <Link to="/admin/menus/nuevo">
             <Button>+ Nuevo menú</Button>
@@ -38,7 +38,7 @@ export function Menus() {
       />
 
       {menus.length === 0 ? (
-        <EmptyState title="Todavía no hay menús">
+        <EmptyState title="Todavía no hay menúes">
           Creá tu primer menú para una fecha y publicalo para recibir encargos.
         </EmptyState>
       ) : (

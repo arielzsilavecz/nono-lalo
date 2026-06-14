@@ -1,7 +1,11 @@
-export function Logo({ className = 'text-4xl' }: { className?: string }) {
+import tipografiaImg from '/tipografia.svg'
+
+export function Logo({ height = 'h-9' }: { height?: string }) {
   return (
-    <span className={`font-script font-bold tracking-wide text-navy-800 ${className}`}>
-      il nonno <span className="text-tomate-600">Lalo</span>
-    </span>
+    <img
+      src={tipografiaImg}
+      alt="il nonno Lalo"
+      className={`${height} w-auto object-contain`}
+    />
   )
 }

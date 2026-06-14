@@ -26,7 +26,6 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
   const [description, setDescription] = useState('')
   const [marginPct, setMarginPct] = useState('50')
   const [manualPrice, setManualPrice] = useState('')
-  const [active, setActive] = useState(true)
   const [recipe, setRecipe] = useState<RecipeRow[]>([])
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -50,7 +49,6 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
           setDescription(dish.description)
           setMarginPct(String(dish.margin_pct))
           setManualPrice(dish.manual_price !== null ? String(dish.manual_price) : '')
-          setActive(dish.active)
           setImageUrl(dish.image_url)
           setRecipe(
             ((recipeRows ?? []) as DishIngredient[]).map((row) => ({
@@ -133,7 +131,6 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
       description: description.trim(),
       margin_pct: margin,
       manual_price: manual,
-      active,
     }
 
     let savedId = dishId
@@ -270,15 +267,6 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
               )}
             </div>
 
-            <label className="flex items-center gap-2 text-sm font-bold text-navy-700">
-              <input
-                type="checkbox"
-                checked={active}
-                onChange={(e) => setActive(e.target.checked)}
-                className="h-4 w-4 accent-tomate-500"
-              />
-              Plato activo (se puede agregar a menús)
-            </label>
           </div>
         </Card>
 

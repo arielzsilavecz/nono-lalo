@@ -81,7 +81,7 @@ export function Orders() {
           value={menuFilter}
           onChange={(e) => setMenuFilter(e.target.value)}
         >
-          <option value="all">Todos los menús</option>
+          <option value="all">Todos los menúes</option>
           {menus.map((menu) => (
             <option key={menu.id} value={menu.id}>
               {menu.title} ({menu.delivery_date})
@@ -135,7 +135,19 @@ export function Orders() {
                         {order.customer_phone}
                       </a>
                     </p>
-                    {order.address && <p className="text-sm text-navy-600">📍 {order.address}</p>}
+                    {order.address && (
+                      <p className="text-sm text-navy-600">
+                        📍{' '}
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-tomate-600"
+                        >
+                          {order.address}
+                        </a>
+                      </p>
+                    )}
                     {order.notes && <p className="text-sm italic text-navy-500">“{order.notes}”</p>}
                     <p className="mt-1 text-xs text-navy-400">
                       {menu ? `${menu.title} · ` : ''}

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Customer, Menu, MenuItem, MenuStatus } from '../../lib/types'
 import { MENU_STATUS_LABELS } from '../../lib/types'
-import { formatARS, formatCookingTime, formatDateOnly, formatDateTime } from '../../lib/format'
+import { formatARS, formatCookingTime, formatDateOnly, formatDateTime, roundDeliveryCost } from '../../lib/format'
 import { geocode, haversineKm } from '../../lib/geo'
 import { Badge, Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, PageTitle, Textarea } from '../../components/ui'
 import { ModalOverlay } from '../../components/ModalOverlay'
@@ -14,6 +14,7 @@ interface DeliverySettings {
   mapsApiKey: string
   basePrice: number
   pricePerKm: number
+  fixedPrice: boolean
 }
 
 const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
@@ -55,7 +56,7 @@ function ReservationModal({
   const [deliveryCost, setDeliveryCost] = useState<number | null>(null)
   const [deliveryKm, setDeliveryKm] = useState<number | null>(null)
   const [geocoding, setGeocoding] = useState(false)
-  const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [cooldown, setCooldown] = useState(false)
 
   const [qty, setQty] = useState('1')
   const [saving, setSaving] = useState(false)
@@ -75,32 +76,40 @@ function ReservationModal({
         mapsApiKey: s['google_maps_api_key'] ?? '',
         basePrice: parseFloat(s['delivery_base_price'] ?? '0') || 0,
         pricePerKm: parseFloat(s['delivery_price_per_km'] ?? '0') || 0,
+        fixedPrice: s['delivery_fixed_price'] === 'true',
       })
     })
   }, [])
 
   useEffect(() => {
-    if (geocodeTimer.current) clearTimeout(geocodeTimer.current)
     setDeliveryCost(null)
     setDeliveryKm(null)
+  }, [withDelivery, deliveryAddress])
 
-    if (!withDelivery || !deliveryAddress.trim() || !deliverySettings?.mapsApiKey || !deliverySettings?.pickupAddress) return
+  async function calcDeliveryCost() {
+    if (!deliverySettings || !deliveryAddress.trim() || cooldown || geocoding) return
 
-    geocodeTimer.current = setTimeout(async () => {
-      setGeocoding(true)
-      const [origin, dest] = await Promise.all([
-        geocode(deliverySettings.pickupAddress, deliverySettings.mapsApiKey),
-        geocode(deliveryAddress.trim() + ', Argentina', deliverySettings.mapsApiKey),
-      ])
-      setGeocoding(false)
-      if (!origin || !dest) return
-      const km = haversineKm(origin.lat, origin.lng, dest.lat, dest.lng)
-      setDeliveryKm(km)
-      setDeliveryCost(deliverySettings.basePrice + km * deliverySettings.pricePerKm)
-    }, 800)
+    if (deliverySettings.fixedPrice) {
+      setDeliveryCost(roundDeliveryCost(deliverySettings.basePrice))
+      setDeliveryKm(null)
+      return
+    }
 
-    return () => { if (geocodeTimer.current) clearTimeout(geocodeTimer.current) }
-  }, [withDelivery, deliveryAddress, deliverySettings])
+    if (!deliverySettings.mapsApiKey || !deliverySettings.pickupAddress) return
+
+    setGeocoding(true)
+    const [origin, dest] = await Promise.all([
+      geocode(deliverySettings.pickupAddress, deliverySettings.mapsApiKey),
+      geocode(deliveryAddress.trim() + ', Argentina', deliverySettings.mapsApiKey),
+    ])
+    setGeocoding(false)
+    if (!origin || !dest) return
+    const km = haversineKm(origin.lat, origin.lng, dest.lat, dest.lng)
+    setDeliveryKm(km)
+    setDeliveryCost(roundDeliveryCost(deliverySettings.basePrice + km * deliverySettings.pricePerKm))
+    setCooldown(true)
+    setTimeout(() => setCooldown(false), 5000)
+  }
 
   const filtered = (customers ?? []).filter((c) => {
     const q = search.toLowerCase()
@@ -282,20 +291,23 @@ function ReservationModal({
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 placeholder="Dirección de entrega…"
               />
-              {geocoding && (
-                <p className="text-xs text-navy-400">Calculando distancia…</p>
-              )}
-              {!geocoding && deliveryCost !== null && deliveryKm !== null && (
+              <button
+                type="button"
+                onClick={calcDeliveryCost}
+                disabled={!deliveryAddress.trim() || geocoding || cooldown}
+                className="flex items-center gap-1.5 text-sm font-bold text-navy-600 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <MapPin size={13} />
+                {geocoding ? 'Calculando…' : cooldown ? 'Calculado ✓' : 'Calcular costo de envío'}
+              </button>
+              {!geocoding && deliveryCost !== null && (
                 <p className="flex items-center gap-1.5 text-sm font-semibold text-navy-700">
                   <MapPin size={13} className="text-tomate-500 shrink-0" />
-                  {deliveryKm.toFixed(1)} km · Envío estimado:{' '}
-                  <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
+                  {deliveryKm !== null && <span>{deliveryKm.toFixed(1)} km · </span>}
+                  Envío: <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
                 </p>
               )}
-              {!geocoding && deliveryAddress.trim() && deliveryCost === null && deliverySettings?.mapsApiKey && (
-                <p className="text-xs text-navy-400">No se pudo calcular la distancia para esa dirección.</p>
-              )}
-              {!deliverySettings?.mapsApiKey && (
+              {!deliverySettings?.mapsApiKey && !deliverySettings?.fixedPrice && (
                 <p className="text-xs text-amber-600">Configurá la clave de Google Maps en Ajustes para ver el costo estimado.</p>
               )}
             </>

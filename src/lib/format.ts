@@ -60,6 +60,11 @@ export function fromDatetimeLocal(value: string): string {
   return new Date(value).toISOString()
 }
 
+/** Redondea el costo de envío a la centena inferior (a favor del cliente). */
+export function roundDeliveryCost(cost: number): number {
+  return Math.floor(cost / 100) * 100
+}
+
 export function formatCookingTime(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60

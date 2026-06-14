@@ -8,6 +8,7 @@ export function Settings() {
   const [mapsApiKey, setMapsApiKey] = useState('')
   const [deliveryBasePrice, setDeliveryBasePrice] = useState('')
   const [deliveryPricePerKm, setDeliveryPricePerKm] = useState('')
+  const [deliveryFixedPrice, setDeliveryFixedPrice] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -24,6 +25,7 @@ export function Settings() {
           if (row.key === 'google_maps_api_key') setMapsApiKey(row.value)
           if (row.key === 'delivery_base_price') setDeliveryBasePrice(row.value)
           if (row.key === 'delivery_price_per_km') setDeliveryPricePerKm(row.value)
+          if (row.key === 'delivery_fixed_price') setDeliveryFixedPrice(row.value === 'true')
         }
         setLoading(false)
       })
@@ -40,6 +42,7 @@ export function Settings() {
       { key: 'google_maps_api_key', value: mapsApiKey.trim() },
       { key: 'delivery_base_price', value: deliveryBasePrice.trim() },
       { key: 'delivery_price_per_km', value: deliveryPricePerKm.trim() },
+      { key: 'delivery_fixed_price', value: deliveryFixedPrice ? 'true' : 'false' },
     ])
     setSaving(false)
     if (upsertError) {
@@ -81,9 +84,19 @@ export function Settings() {
 
           <p className="text-sm font-bold uppercase tracking-wide text-navy-500">Costo de envío</p>
 
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-navy-700">
+            <input
+              type="checkbox"
+              checked={deliveryFixedPrice}
+              onChange={(e) => setDeliveryFixedPrice(e.target.checked)}
+              className="h-4 w-4 accent-tomate-500"
+            />
+            Precio fijo (usar siempre el precio base, sin calcular por distancia)
+          </label>
+
           <Field
             label="Clave API de Google Maps"
-            hint="Habilitá la API de Geocoding en Google Cloud Console y restringí la clave a este dominio."
+            hint={deliveryFixedPrice ? 'No se usa con precio fijo.' : 'Habilitá la API de Geocoding en Google Cloud Console y restringí la clave a este dominio.'}
           >
             <Input
               type="password"
@@ -91,11 +104,12 @@ export function Settings() {
               onChange={(e) => setMapsApiKey(e.target.value)}
               placeholder="AIza…"
               autoComplete="off"
+              disabled={deliveryFixedPrice}
             />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Precio base de envío" hint="Costo fijo independiente de la distancia.">
+            <Field label={deliveryFixedPrice ? 'Precio de envío' : 'Precio base de envío'} hint={deliveryFixedPrice ? 'Monto fijo para todos los envíos.' : 'Costo fijo independiente de la distancia.'}>
               <InputAdorn
                 prefix="$"
                 type="number"
@@ -103,20 +117,22 @@ export function Settings() {
                 step="1"
                 value={deliveryBasePrice}
                 onChange={(e) => setDeliveryBasePrice(e.target.value)}
-                placeholder="200"
+                placeholder="500"
               />
             </Field>
-            <Field label="Precio por km" hint="Se suma al precio base según la distancia en línea recta.">
-              <InputAdorn
-                prefix="$"
-                type="number"
-                min="0"
-                step="1"
-                value={deliveryPricePerKm}
-                onChange={(e) => setDeliveryPricePerKm(e.target.value)}
-                placeholder="100"
-              />
-            </Field>
+            {!deliveryFixedPrice && (
+              <Field label="Precio por km" hint="Se suma al precio base según la distancia en línea recta.">
+                <InputAdorn
+                  prefix="$"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={deliveryPricePerKm}
+                  onChange={(e) => setDeliveryPricePerKm(e.target.value)}
+                  placeholder="100"
+                />
+              </Field>
+            )}
           </div>
 
           {error && <ErrorText>{error}</ErrorText>}

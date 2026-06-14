@@ -178,7 +178,7 @@ export function Dashboard() {
             </div>
           ) : (
             <p className="mt-2 text-sm text-navy-500">
-              No hay menús publicados próximos.{' '}
+              No hay menúes publicados próximos.{' '}
               <Link to="/admin/publicaciones" className="font-bold underline">
                 Creá uno
               </Link>{' '}

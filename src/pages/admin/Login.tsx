@@ -35,7 +35,7 @@ export function Login() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <img src={logoImg} alt="il nonno Lalo" className="h-24 w-24 object-contain" />
-          <Logo className="text-4xl" />
+          <Logo height="h-10" />
           <p className="text-sm text-navy-500">Acceso a la cocina</p>
         </div>
         <Card>

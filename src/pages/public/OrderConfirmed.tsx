@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { formatARS, formatDateOnly, waLink } from '../../lib/format'
-import logoImg from '/logo.png'
+import logoImg from '/sorrentino_ok.png'
 import { Card } from '../../components/ui'
 
 interface ConfirmationState {
@@ -94,7 +94,7 @@ export function OrderConfirmed() {
 
       <p className="mt-6">
         <Link to="/" className="text-sm font-bold text-navy-600 underline hover:text-navy-800">
-          Volver a los menús
+          Volver a los menúes
         </Link>
       </p>
     </div>
