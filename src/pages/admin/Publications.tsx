@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Customer, Menu, MenuItem, MenuStatus } from '../../lib/types'
 import { MENU_STATUS_LABELS } from '../../lib/types'
-import { formatARS, formatCookingTime, formatDateOnly, formatDateTime, roundDeliveryCost } from '../../lib/format'
+import { formatARS, formatDateOnly, formatDateTime, roundDeliveryCost } from '../../lib/format'
 import { geocode, haversineKm } from '../../lib/geo'
 import { Badge, Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, PageTitle, Textarea } from '../../components/ui'
 import { ModalOverlay } from '../../components/ModalOverlay'
 import { PublicationEditor } from './PublicationEditor'
-import { CalendarPlus, Check, Clock, MapPin, RotateCcw, UserPlus } from 'lucide-react'
+import { CalendarPlus, Check, MapPin, RotateCcw, UserPlus } from 'lucide-react'
 
 interface DeliverySettings {
   pickupAddress: string
@@ -415,11 +415,6 @@ export function Publications() {
                   </p>
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-navy-500">
                     <span>{menu.order_deadline ? `Cierre: ${formatDateTime(menu.order_deadline)}` : 'Hasta agotar stock'}</span>
-                    {menu.cooking_time && (
-                      <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
-                        <Clock size={13} /> {formatCookingTime(menu.cooking_time)}
-                      </span>
-                    )}
                     {item && (
                       <>
                         {' · '}

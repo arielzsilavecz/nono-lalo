@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { DishIngredient, Ingredient, Menu, MenuItem } from '../../lib/types'
-import { formatARS, formatCookingTime, formatDateOnly, formatQty, todayDateValue } from '../../lib/format'
+import { formatARS, formatDateOnly, formatQty, todayDateValue } from '../../lib/format'
 import { Button, Card, LoadingBlock, PageTitle } from '../../components/ui'
 import { AlertTriangle, BookOpen, Calendar, Check, ChevronDown, ChevronUp, Clock, MapPin, Pencil, Users } from 'lucide-react'
 
@@ -499,13 +499,6 @@ export function Dashboard() {
                 <p className="mt-2 text-xs font-semibold text-navy-500">{stats.nextMenuPortions} porciones reservadas</p>
               ) : null}
 
-              {/* Tiempo de cocción */}
-              {stats.nextMenu.cooking_time && (
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
-                  <Clock size={12} />
-                  {formatCookingTime(stats.nextMenu.cooking_time)} de cocción
-                </div>
-              )}
 
               {/* Pedidos */}
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-navy-600">
@@ -514,8 +507,8 @@ export function Dashboard() {
                 {(stats.nextMenuNewCustomers > 0 || stats.nextMenuReturningCustomers > 0) && (
                   <span>
                     ({[
-                      stats.nextMenuNewCustomers > 0 ? `${stats.nextMenuNewCustomers} nuevos` : '',
-                      stats.nextMenuReturningCustomers > 0 ? `${stats.nextMenuReturningCustomers} recurrentes` : '',
+                      stats.nextMenuNewCustomers > 0 ? `${stats.nextMenuNewCustomers} clientes nuevos` : '',
+                      stats.nextMenuReturningCustomers > 0 ? `${stats.nextMenuReturningCustomers} clientes recurrentes` : '',
                     ].filter(Boolean).join(' / ')})
                   </span>
                 )}
