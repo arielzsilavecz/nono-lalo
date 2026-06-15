@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Dish, DishIngredient, Ingredient, Menu, MenuItem, MenuStatus } from '../../lib/types'
-import { MENU_STATUS_LABELS } from '../../lib/types'
+import { FULFILLMENT_LABELS, MENU_STATUS_LABELS, ORDER_STATUS_LABELS } from '../../lib/types'
 import { dishCost, effectivePrice } from '../../lib/costing'
-import { formatARS, formatDateOnly, fromDatetimeLocal, toDatetimeLocal } from '../../lib/format'
+import { formatARS, formatDateOnly, fromDatetimeLocal, toDatetimeLocal, waLink } from '../../lib/format'
 import { Badge, Button, Card, ErrorText, Field, Input, InputAdorn, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
 import { Check, Copy } from 'lucide-react'
 
@@ -13,6 +13,24 @@ const STATUS_TONES: Record<MenuStatus, 'gray' | 'green' | 'amber' | 'navy'> = {
   published: 'green',
   closed: 'amber',
   cooked: 'navy',
+}
+
+const ORDER_STATUS_TONES: Record<string, 'gray' | 'green' | 'amber' | 'navy' | 'red'> = {
+  pending: 'amber',
+  confirmed: 'green',
+  ready: 'green',
+  delivered: 'navy',
+  cancelled: 'red',
+}
+
+interface OrderRow {
+  order_number: number
+  customer_name: string
+  customer_phone: string
+  address: string | null
+  status: string
+  fulfillment: string
+  order_items: { qty: number }[]
 }
 
 interface Props { embeddedId?: string; onClose?: () => void }
@@ -40,9 +58,9 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
   const [notes, setNotes] = useState('')
 
   // saved menu_item id (for existing publications)
-  const [cookingTime, setCookingTime] = useState('')
   const [menuItemId, setMenuItemId] = useState<string | null>(null)
   const [reserved, setReserved] = useState(0)
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([])
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -61,10 +79,12 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
       setIngredients((ingredientsRes.data ?? []) as Ingredient[])
 
       if (!isNew && pubId) {
-        const [{ data: menuRow }, { data: itemRows }] = await Promise.all([
+        const [{ data: menuRow }, { data: itemRows }, { data: ordersData }] = await Promise.all([
           supabase.from('menus').select('*').eq('id', pubId).maybeSingle(),
           supabase.from('menu_items').select('*').eq('menu_id', pubId).limit(1),
+          supabase.from('orders').select('order_number, customer_name, customer_phone, address, status, fulfillment, order_items(qty)').eq('menu_id', pubId).order('order_number'),
         ])
+        setOrderRows((ordersData ?? []) as OrderRow[])
         const menu = menuRow as Menu | null
         const item = ((itemRows ?? []) as MenuItem[])[0] ?? null
         if (menu) {
@@ -73,7 +93,6 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
           setOpenUntilSoldOut(menu.order_deadline === null)
           if (menu.order_deadline !== null) setDeadlineLocal(toDatetimeLocal(menu.order_deadline))
           setNotes(menu.notes)
-          setCookingTime(menu.cooking_time !== null ? String(menu.cooking_time) : '')
         }
         if (item) {
           setMenuItemId(item.id)
@@ -142,7 +161,6 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
       delivery_date: deliveryDate,
       order_deadline: openUntilSoldOut ? null : fromDatetimeLocal(deadlineLocal),
       notes: notes.trim(),
-      cooking_time: cookingTime.trim() === '' ? null : Number(cookingTime),
       ...(isNew ? { status: 'published' } : {}),
     }
 
@@ -321,7 +339,7 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
               Publicar hasta agotar stock
             </label>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <Field label="Precio por porción" hint={cost > 0 ? `Costo: ${formatARS(cost)}` : undefined}>
                 <InputAdorn
                   prefix="$"
@@ -343,30 +361,8 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
                   placeholder="Sin límite"
                 />
               </Field>
-              <Field
-                label="Tiempo de cocción"
-                hint={cookingTime && Number(cookingTime) >= 60
-                  ? `${Math.floor(Number(cookingTime) / 60)} h ${Number(cookingTime) % 60 > 0 ? `${Number(cookingTime) % 60} min` : ''}`.trim()
-                  : 'Opcional'}
-              >
-                <InputAdorn
-                  suffix="min"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={cookingTime}
-                  onChange={(e) => setCookingTime(e.target.value)}
-                  placeholder="90"
-                />
-              </Field>
             </div>
 
-            {!isNew && reserved > 0 && (
-              <p className="text-sm font-semibold text-tomate-600">
-                {reserved} porciones ya encargadas
-                {maxPortions ? ` de ${maxPortions}` : ''}
-              </p>
-            )}
 
             <Field label="Nota para los clientes (opcional)">
               <Textarea
@@ -442,6 +438,66 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
           </div>
         </Card>
       </form>
+
+      {!isNew && orderRows.filter((o) => o.status !== 'cancelled').length > 0 && (
+        <Card className="mt-4">
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-navy-500">
+            Porciones reservadas
+            <span className="ml-2 font-normal text-tomate-600">
+              {reserved}{maxPortions ? ` / ${maxPortions}` : ''}
+            </span>
+          </h3>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-crema-200 text-xs font-bold uppercase tracking-wide text-navy-400">
+                <th className="pb-2 text-left">Cliente</th>
+                <th className="pb-2 text-center">Porciones</th>
+                <th className="pb-2 text-center">Entrega</th>
+                <th className="pb-2 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orderRows.filter((o) => o.status !== 'cancelled').map((o) => (
+                <tr key={o.order_number} className="border-b border-crema-100 last:border-0">
+                  <td className="py-2">
+                    <span className="font-semibold text-navy-800">{o.customer_name}</span>
+                    <a
+                      href={waLink(o.customer_phone, `¡Hola ${o.customer_name}! Te escribimos de _il nonno Lalo_.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-xs font-semibold text-emerald-700 underline"
+                    >
+                      {o.customer_phone}
+                    </a>
+                  </td>
+                  <td className="py-2 text-center font-bold text-navy-700">
+                    {o.order_items.reduce((s, i) => s + Number(i.qty), 0)}
+                  </td>
+                  <td className="py-2 text-center text-navy-600">
+                    {o.fulfillment === 'delivery' && o.address ? (
+                      <a
+                        href={`https://maps.google.com/?q=${encodeURIComponent(o.address)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-navy-700 underline"
+                      >
+                        Delivery
+                      </a>
+                    ) : (
+                      FULFILLMENT_LABELS[o.fulfillment as 'pickup' | 'delivery']
+                    )}
+                  </td>
+                  <td className="py-2 text-center">
+                    <Badge tone={ORDER_STATUS_TONES[o.status] ?? 'gray'}>
+                      {ORDER_STATUS_LABELS[o.status as keyof typeof ORDER_STATUS_LABELS] ?? o.status}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
 
     </div>
   )

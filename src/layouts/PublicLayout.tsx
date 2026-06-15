@@ -3,6 +3,7 @@ import { Link, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Logo } from '../components/Logo'
 import logoImg from '/sorrentino_logo.png'
+import tipografiaLandingImg from '/tipografia-landing.svg'
 
 export function PublicLayout() {
   const [waNumber, setWaNumber] = useState<string | null>(null)
@@ -19,12 +20,12 @@ export function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-crema-200 bg-crema-50/90 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-1">
-          <Link to="/" aria-label="Ir al inicio" className="flex items-center gap-3">
-            <img src={logoImg} alt="" className="h-28.5 w-28.5 object-contain" />
-            <Logo height="h-20" variant="landing" />
+        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-1">
+          <Link to="/" aria-label="Ir al inicio" className="flex min-w-0 flex-1 items-center gap-3">
+            <img src={logoImg} alt="" className="h-27 w-27 shrink-0 object-contain" />
+            <img src={tipografiaLandingImg} alt="il nonno Lalo" className="min-w-0 flex-1 h-auto object-contain object-left" />
           </Link>
-          <span className="hidden font-script text-[2.1rem] text-navy-600 sm:block">
+          <span className="hidden shrink-0 font-script text-[2.1rem] text-navy-600 sm:block">
             Comida casera con alma de familia
           </span>
         </div>

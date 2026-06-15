@@ -24,6 +24,7 @@ export interface Dish {
   description: string
   margin_pct: number
   manual_price: number | null
+  cooking_time: number | null
   active: boolean
   image_url: string | null
   created_at: string
@@ -44,7 +45,6 @@ export interface Menu {
   order_deadline: string | null
   status: MenuStatus
   notes: string
-  cooking_time: number | null
   created_at: string
 }
 

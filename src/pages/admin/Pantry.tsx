@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import type { Ingredient, IngredientPriceEntry, PantryMovement, Unit } from '../../lib/types'
 import { PANTRY_REASON_LABELS, UNITS } from '../../lib/types'
 import { formatARS, formatQty, formatShortDateTime } from '../../lib/format'
-import { AlertTriangle, History, MoreVertical, Pencil, Search, ShoppingCart, SlidersHorizontal, Trash2, UtensilsCrossed } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, History, MoreVertical, Pencil, Search, ShoppingCart, SlidersHorizontal, Trash2, UtensilsCrossed } from 'lucide-react'
 import { Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, Modal, PageTitle, Select } from '../../components/ui'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -38,6 +38,7 @@ interface MovementEditor {
 
 type StockStatus = 'ok' | 'low' | 'empty'
 type FilterType = 'all' | 'critical' | 'empty' | 'ok'
+type SortCol = 'name' | 'stock' | 'min_stock' | 'status' | 'value' | 'price'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -118,8 +119,20 @@ export function Pantry() {
   const [moveError, setMoveError] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
   const [search, setSearch] = useState('')
+  const [sortCol, setSortCol] = useState<SortCol>('status')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  function handleSort(col: SortCol) {
+    if (sortCol === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortCol(col); setSortDir('asc') }
+  }
+
+  function SortIcon({ col }: { col: SortCol }) {
+    if (sortCol !== col) return <ArrowUpDown size={11} className="opacity-40" />
+    return sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />
+  }
 
   async function load() {
     const [ingredientsRes, stockRes, movementsRes] = await Promise.all([
@@ -243,6 +256,21 @@ export function Pantry() {
     return matchesFilter && matchesSearch
   })
 
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    let av: number | string
+    let bv: number | string
+    switch (sortCol) {
+      case 'name':     av = a.ingredient.name.toLowerCase(); bv = b.ingredient.name.toLowerCase(); break
+      case 'stock':    av = a.currentStock; bv = b.currentStock; break
+      case 'min_stock': av = a.ingredient.min_stock ?? -1; bv = b.ingredient.min_stock ?? -1; break
+      case 'status':   av = STATUS_ORDER[a.status]; bv = STATUS_ORDER[b.status]; break
+      case 'value':    av = Math.max(0, a.currentStock) * a.ingredient.current_price; bv = Math.max(0, b.currentStock) * b.ingredient.current_price; break
+      case 'price':    av = a.ingredient.current_price; bv = b.ingredient.current_price; break
+    }
+    const cmp = typeof av === 'string' ? av.localeCompare(bv as string, 'es') : (av as number) - (bv as number)
+    return sortDir === 'asc' ? cmp : -cmp
+  })
+
   const movementGroups = groupMovements(movements)
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -281,9 +309,14 @@ export function Pantry() {
       {/* Critical section */}
       {critical.length > 0 && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-red-700">
+          <h2 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold text-red-700">
             <AlertTriangle size={15} />
-            Requieren reposición ({critical.length})
+            <span>Requieren reposición</span>
+            <span className="text-xs font-normal text-navy-500">
+              (<span className="font-semibold text-red-600">🔴 Reponer urgente</span>
+              {' | '}
+              <span className="font-semibold text-amber-600">🟡 Bajo mínimo</span>)
+            </span>
           </h2>
           <div className="flex flex-wrap gap-2">
             {critical.map(({ ingredient, currentStock, status }) => (
@@ -300,13 +333,14 @@ export function Pantry() {
                   Stock: {formatQty(currentStock)} {ingredient.unit}
                   {ingredient.min_stock !== null && ` / mín ${formatQty(ingredient.min_stock)}`}
                 </span>
-                <span className={`text-xs font-bold ${status === 'empty' ? 'text-red-700' : 'text-amber-700'}`}>
-                  {status === 'empty' ? '🔴 Reponer urgente' : '🟡 Bajo mínimo'}
-                </span>
                 <button
                   type="button"
                   onClick={() => setMovementEditor({ ingredient, mode: 'purchase', qty: '', newPrice: String(ingredient.current_price), notes: '' })}
-                  className="mt-1 flex items-center gap-1 text-xs font-semibold text-tomate-600 hover:text-tomate-700"
+                  className={`mt-1 flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    status === 'empty'
+                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                      : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                  }`}
                 >
                   <ShoppingCart size={11} /> Registrar compra
                 </button>
@@ -367,25 +401,37 @@ export function Pantry() {
             <Card className="p-0">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-crema-200 text-left text-xs font-bold uppercase tracking-wide text-navy-500">
-                    <th className="px-4 py-3">Ingrediente</th>
-                    <th className="px-3 py-3 text-center">Stock</th>
-                    <th className="px-3 py-3 text-center">Mín</th>
-                    <th className="px-3 py-3 text-center">Estado</th>
-                    <th className="px-3 py-3 text-center">Valor</th>
-                    <th className="px-3 py-3 text-center">Precio/ud</th>
+                  <tr className="border-b border-crema-200 text-xs font-bold uppercase tracking-wide text-navy-500">
+                    {([
+                      ['name',      'Ingrediente', 'text-left',   'px-4'],
+                      ['stock',     'Stock',       'text-center', 'px-3'],
+                      ['min_stock', 'Mín',         'text-center', 'px-3'],
+                      ['status',    'Estado',      'text-center', 'px-3'],
+                      ['value',     'Valor',       'text-center', 'px-3'],
+                      ['price',     'Precio/ud',   'text-center', 'px-3'],
+                    ] as [SortCol, string, string, string][]).map(([col, label, align, px]) => (
+                      <th
+                        key={col}
+                        onClick={() => handleSort(col)}
+                        className={`cursor-pointer select-none ${px} py-3 ${align} transition-colors hover:bg-crema-100 hover:text-navy-700`}
+                      >
+                        <div className={`flex items-center gap-1 ${align === 'text-center' ? 'justify-center' : ''}`}>
+                          {label} <SortIcon col={col} />
+                        </div>
+                      </th>
+                    ))}
                     <th className="px-3 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 && (
+                  {sortedFiltered.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-6 text-center text-sm text-navy-400">
                         Sin resultados
                       </td>
                     </tr>
                   )}
-                  {filtered.map(({ ingredient, currentStock, status }) => {
+                  {sortedFiltered.map(({ ingredient, currentStock, status }) => {
                     const cfg = STATUS_CONFIG[status]
                     const barPct = stockBarWidth(ingredient, currentStock)
                     return (

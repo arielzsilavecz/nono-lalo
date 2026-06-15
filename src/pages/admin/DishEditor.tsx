@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import type { Dish, DishIngredient, Ingredient } from '../../lib/types'
 import { roundPrice, suggestedPrice } from '../../lib/costing'
 import { formatARS } from '../../lib/format'
-import { Button, Card, ErrorText, Field, Input, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
+import { Button, Card, ErrorText, Field, Input, InputAdorn, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
 
 interface RecipeRow {
   ingredient_id: string
@@ -26,6 +26,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
   const [description, setDescription] = useState('')
   const [marginPct, setMarginPct] = useState('50')
   const [manualPrice, setManualPrice] = useState('')
+  const [cookingTime, setCookingTime] = useState('')
   const [recipe, setRecipe] = useState<RecipeRow[]>([])
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -49,6 +50,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
           setDescription(dish.description)
           setMarginPct(String(dish.margin_pct))
           setManualPrice(dish.manual_price !== null ? String(dish.manual_price) : '')
+          setCookingTime(dish.cooking_time !== null ? String(dish.cooking_time) : '')
           setImageUrl(dish.image_url)
           setRecipe(
             ((recipeRows ?? []) as DishIngredient[]).map((row) => ({
@@ -131,6 +133,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
       description: description.trim(),
       margin_pct: margin,
       manual_price: manual,
+      cooking_time: cookingTime.trim() === '' ? null : Number(cookingTime),
     }
 
     let savedId = dishId
@@ -232,6 +235,22 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
                 />
               </Field>
             </div>
+            <Field
+              label="Tiempo de cocción"
+              hint={cookingTime && Number(cookingTime) >= 60
+                ? `${Math.floor(Number(cookingTime) / 60)} h ${Number(cookingTime) % 60 > 0 ? `${Number(cookingTime) % 60} min` : ''}`.trim()
+                : 'Opcional'}
+            >
+              <InputAdorn
+                suffix="min"
+                type="number"
+                min="1"
+                step="1"
+                value={cookingTime}
+                onChange={(e) => setCookingTime(e.target.value)}
+                placeholder="90"
+              />
+            </Field>
             {/* Imagen del plato */}
             <div>
               <span className="mb-1 block text-sm font-bold text-navy-700">Imagen del plato</span>
@@ -278,7 +297,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
           {ingredients.length === 0 ? (
             <p className="text-sm text-navy-500">
               Primero cargá tus{' '}
-              <Link to="/admin/ingredientes" className="font-bold underline">
+              <Link to="/admin/despensa" className="font-bold underline">
                 ingredientes
               </Link>
               .
