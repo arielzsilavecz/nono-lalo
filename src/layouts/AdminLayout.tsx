@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Logo } from '../components/Logo'
-import { LogOut, Settings } from 'lucide-react'
+import { BugReportsModal } from '../components/BugReportsModal'
+import { Bug, LogOut, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Resumen', end: true },
@@ -15,6 +17,7 @@ const NAV_ITEMS = [
 
 export function AdminLayout() {
   const navigate = useNavigate()
+  const [showBugReports, setShowBugReports] = useState(false)
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -50,6 +53,14 @@ export function AdminLayout() {
             </div>
           </nav>
           <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowBugReports(true)}
+              title="Reportar problema"
+              className="cursor-pointer rounded-full p-2 text-navy-100 transition-colors hover:bg-navy-700"
+            >
+              <Bug size={18} />
+            </button>
             <NavLink
               to="/admin/ajustes"
               title="Configuración"
@@ -80,6 +91,8 @@ export function AdminLayout() {
       <div className="hidden print:block print:px-4 print:text-center">
         <Logo height="h-7" />
       </div>
+
+      {showBugReports && <BugReportsModal onClose={() => setShowBugReports(false)} />}
     </div>
   )
 }
