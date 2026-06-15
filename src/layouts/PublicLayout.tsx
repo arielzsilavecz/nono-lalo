@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Logo } from '../components/Logo'
-import logoImg from '/logo.png'
+import logoImg from '/sorrentino_logo.png'
 
 export function PublicLayout() {
   const [waNumber, setWaNumber] = useState<string | null>(null)
@@ -22,7 +22,7 @@ export function PublicLayout() {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-1">
           <Link to="/" aria-label="Ir al inicio" className="flex items-center gap-3">
             <img src={logoImg} alt="" className="h-28.5 w-28.5 object-contain" />
-            <Logo height="h-20" />
+            <Logo height="h-20" variant="landing" />
           </Link>
           <span className="hidden font-script text-[2.1rem] text-navy-600 sm:block">
             Comida casera con alma de familia

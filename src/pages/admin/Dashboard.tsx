@@ -10,11 +10,13 @@ type DateFilter = 'week' | 'month' | 'custom'
 
 interface OrderDetail {
   id: string
+  order_number: number
   customer_name: string
   customer_phone: string
   fulfillment: string
   address: string | null
   status: string
+  total: number
 }
 
 interface TopDish { name: string; qty: number }
@@ -69,6 +71,8 @@ export function Dashboard() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [expanded, setExpanded] = useState(false)
+  const [showPeriodRevenue, setShowPeriodRevenue] = useState(false)
+  const [periodOrders, setPeriodOrders] = useState<{ id: string; order_number: number; customer_name: string; total: number }[]>([])
   const [orderDetails, setOrderDetails] = useState<OrderDetail[] | null>(null)
   const [countdown, setCountdown] = useState<string | null>(null)
 
@@ -103,7 +107,7 @@ export function Dashboard() {
       dishesRes,
       ingredientsRes,
     ] = await Promise.all([
-      supabase.from('orders').select('id, menu_id, fulfillment, status, total, customer_phone, created_at').neq('status', 'cancelled'),
+      supabase.from('orders').select('id, order_number, menu_id, fulfillment, status, total, customer_phone, customer_name, created_at').neq('status', 'cancelled'),
       supabase.from('order_items').select('order_id, dish_name, qty'),
       supabase.from('pantry_movements').select('ingredient_id, qty'),
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -130,6 +134,17 @@ export function Dashboard() {
     const filteredOrderIds = new Set(filteredOrders.map((o) => o.id))
 
     const historicalRevenue = filteredOrders.reduce((s, o) => s + Number(o.total), 0)
+
+    setPeriodOrders(
+      [...filteredOrders]
+        .sort((a, b) => Number(b.total) - Number(a.total))
+        .map((o) => ({
+          id: String(o.id),
+          order_number: Number(o.order_number),
+          customer_name: String((o as Record<string, unknown>).customer_name ?? ''),
+          total: Number(o.total),
+        }))
+    )
 
     // Top platos (filtrado)
     const dishCounts = new Map<string, number>()
@@ -296,7 +311,7 @@ export function Dashboard() {
     if (!stats?.nextMenu) return
     const { data } = await supabase
       .from('orders')
-      .select('id, customer_name, customer_phone, fulfillment, address, status')
+      .select('id, order_number, customer_name, customer_phone, fulfillment, address, status, total')
       .eq('menu_id', stats.nextMenu.id)
       .neq('status', 'cancelled')
       .order('fulfillment')
@@ -385,7 +400,30 @@ export function Dashboard() {
         </Link>
         <Card className="text-center">
           <p className="text-sm font-semibold text-navy-600">Ingresos</p>
-          <p className="mt-1 text-2xl font-bold text-navy-700">{formatARS(stats.historicalRevenue)}</p>
+          <button
+            type="button"
+            onClick={() => setShowPeriodRevenue((v) => !v)}
+            className="mt-1 flex w-full cursor-pointer items-center justify-center gap-1 text-2xl font-bold text-navy-700 hover:text-navy-900"
+          >
+            {formatARS(stats.historicalRevenue)}
+            {showPeriodRevenue ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </button>
+          {showPeriodRevenue && (
+            <div className="mt-3 border-t border-crema-200 pt-3 text-left">
+              {periodOrders.length === 0 ? (
+                <p className="text-xs text-navy-400">Sin pedidos en el período.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {periodOrders.map((o) => (
+                    <li key={o.id} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold text-navy-700">#{o.order_number} {o.customer_name}</span>
+                      <span className="shrink-0 font-bold text-navy-600">{formatARS(o.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </Card>
         <Link to="/admin/platos">
           <Card className="text-center transition-colors hover:border-tomate-300">
@@ -469,12 +507,24 @@ export function Dashboard() {
                 </div>
               )}
 
-              {/* Pedidos + badges */}
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-2xl font-bold text-tomate-600">{stats.nextMenuOrders}</span>
-                  <span className="text-sm font-semibold text-navy-600">pedidos</span>
-                </div>
+              {/* Pedidos */}
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-navy-600">
+                <span className="text-xl font-bold text-tomate-600">{stats.nextMenuOrders}</span>
+                <span className="text-xl font-semibold">pedidos</span>
+                {(stats.nextMenuNewCustomers > 0 || stats.nextMenuReturningCustomers > 0) && (
+                  <span>
+                    ({[
+                      stats.nextMenuNewCustomers > 0 ? `${stats.nextMenuNewCustomers} nuevos` : '',
+                      stats.nextMenuReturningCustomers > 0 ? `${stats.nextMenuReturningCustomers} recurrentes` : '',
+                    ].filter(Boolean).join(' / ')})
+                  </span>
+                )}
+                {stats.ticketAvg > 0 && (
+                  <>
+                    <span className="text-navy-300">|</span>
+                    <span>ticket promedio <span className="font-bold text-navy-700">{formatARS(stats.ticketAvg)}</span></span>
+                  </>
+                )}
                 {stats.nextMenuOrders > 0 && (
                   <>
                     <span className="inline-flex items-center gap-1 rounded-full bg-navy-100 px-2.5 py-0.5 text-xs font-bold text-navy-700">
@@ -504,31 +554,6 @@ export function Dashboard() {
               {/* Detalle expandible */}
               {expanded && (
                 <div className="mt-4 border-t border-crema-200 pt-4">
-                  {/* Ingresos + ticket + clientes en una fila */}
-                  <div className="mb-4 flex flex-wrap justify-center gap-8">
-                    <div className="text-center">
-                      <p className="text-xs font-semibold text-navy-400">ingresos estimados</p>
-                      <p className="text-xl font-bold text-tomate-600">{formatARS(stats.nextMenuRevenue)}</p>
-                    </div>
-                    {stats.ticketAvg > 0 && (
-                      <div className="text-center">
-                        <p className="text-xs font-semibold text-navy-400">ticket promedio</p>
-                        <p className="text-xl font-bold text-navy-700">{formatARS(stats.ticketAvg)}</p>
-                      </div>
-                    )}
-                    {stats.nextMenuOrders > 0 && (
-                      <div className="text-center">
-                        <p className="text-xs font-semibold text-navy-400">clientes</p>
-                        <p className="text-xl font-bold text-navy-700">
-                          <span className="text-emerald-600">{stats.nextMenuNewCustomers}</span>
-                          <span className="mx-1 text-sm font-semibold text-navy-400">nuevos</span>
-                          {stats.nextMenuReturningCustomers}
-                          <span className="ml-1 text-sm font-semibold text-navy-400">recurrentes</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
                   {/* 3 columnas: retiran | delivery | stock */}
                   <div className="grid gap-6 sm:grid-cols-3">
                     {/* Retiran */}
@@ -544,10 +569,11 @@ export function Dashboard() {
                         <ul className="space-y-1">
                           {pickupList.map((o) => (
                             <li key={o.id} className="flex items-center justify-between gap-2 text-sm">
-                              <span className={o.status === 'delivered' ? 'opacity-40 line-through' : 'text-navy-700'}>
+                              <span className={`min-w-0 ${o.status === 'delivered' ? 'opacity-40 line-through' : 'text-navy-700'}`}>
                                 <span className="font-semibold">{o.customer_name}</span>
                                 <span className="ml-2 text-navy-400">{o.customer_phone}</span>
                               </span>
+                              <span className="shrink-0 text-xs font-bold text-navy-600">{formatARS(o.total)}</span>
                               <button
                                 type="button"
                                 title={o.status === 'delivered' ? 'Desmarcar entregado' : 'Marcar como entregado'}
@@ -580,10 +606,11 @@ export function Dashboard() {
                           {deliveryList.map((o) => (
                             <li key={o.id}>
                               <div className="flex items-center justify-between gap-2 text-sm">
-                                <span className={o.status === 'delivered' ? 'opacity-40 line-through text-navy-700' : 'text-navy-700'}>
+                                <span className={`min-w-0 ${o.status === 'delivered' ? 'opacity-40 line-through text-navy-700' : 'text-navy-700'}`}>
                                   <span className="font-semibold">{o.customer_name}</span>
                                   <span className="ml-2 text-navy-400">{o.customer_phone}</span>
                                 </span>
+                                <span className="shrink-0 text-xs font-bold text-navy-600">{formatARS(o.total)}</span>
                                 <button
                                   type="button"
                                   title={o.status === 'delivered' ? 'Desmarcar entregado' : 'Marcar como entregado'}

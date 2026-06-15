@@ -16,7 +16,6 @@ import { Orders } from './pages/admin/Orders'
 import { ShoppingList } from './pages/admin/ShoppingList'
 import { Dishes } from './pages/admin/Dishes'
 import { DishEditor } from './pages/admin/DishEditor'
-import { Ingredients } from './pages/admin/Ingredients'
 import { Pantry } from './pages/admin/Pantry'
 import { Settings } from './pages/admin/Settings'
 import { Customers } from './pages/admin/Customers'
@@ -52,7 +51,6 @@ export default function App() {
             <Route path="compras" element={<ShoppingList />} />
             <Route path="platos" element={<Dishes />} />
             <Route path="platos/:dishId" element={<DishEditor />} />
-            <Route path="ingredientes" element={<Ingredients />} />
             <Route path="despensa" element={<Pantry />} />
             <Route path="ajustes" element={<Settings />} />
           </Route>

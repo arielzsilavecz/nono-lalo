@@ -7,6 +7,7 @@ export interface Ingredient {
   name: string
   unit: Unit
   current_price: number
+  min_stock: number | null
   created_at: string
 }
 

@@ -10,7 +10,6 @@ const NAV_ITEMS = [
   { to: '/admin/clientes', label: 'Clientes' },
   { to: '/admin/compras', label: 'Compras' },
   { to: '/admin/platos', label: 'Platos' },
-  { to: '/admin/ingredientes', label: 'Ingredientes' },
   { to: '/admin/despensa', label: 'Despensa' },
 ]
 
@@ -25,14 +24,32 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen">
       <header className="no-print bg-navy-800 text-crema-50">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <NavLink to="/admin" className="flex items-center gap-2">
-            <span className="font-script text-2xl font-bold text-crema-50">
-              il nonno <span className="text-tomate-300">Lalo</span>
-            </span>
-            <span className="rounded-full bg-navy-600 px-2 py-0.5 text-xs font-bold">cocina</span>
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2">
+          <NavLink to="/admin" className="flex shrink-0 items-center gap-2">
+            <img src="/sorrentino_cocina.png" alt="" className="h-12 w-auto object-contain" />
+            <img src="/tipografia-header.svg" alt="il nonno Lalo" className="h-12 w-auto" />
           </NavLink>
-          <div className="flex items-center gap-1">
+          <nav className="flex min-w-0 flex-1 overflow-x-auto">
+            <div className="flex gap-1">
+              {NAV_ITEMS.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-bold transition-colors ${
+                      isActive
+                        ? 'bg-tomate-500 text-white'
+                        : 'text-navy-100 hover:bg-navy-700'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          </nav>
+          <div className="flex shrink-0 items-center gap-1">
             <NavLink
               to="/admin/ajustes"
               title="Configuración"
@@ -54,26 +71,6 @@ export function AdminLayout() {
             </button>
           </div>
         </div>
-        <nav className="mx-auto max-w-6xl overflow-x-auto px-4">
-          <div className="flex gap-1 pb-2">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-bold transition-colors ${
-                    isActive
-                      ? 'bg-tomate-500 text-white'
-                      : 'text-navy-100 hover:bg-navy-700'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </div>
-        </nav>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
