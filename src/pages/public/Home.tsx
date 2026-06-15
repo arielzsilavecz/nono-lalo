@@ -104,7 +104,7 @@ export function Home() {
                         : 'bg-crema-200 text-navy-600 hover:bg-crema-300'
                     }`}
                   >
-                    {open ? 'Ver menú y encargar' : 'Ver menú'}
+                    {open ? 'Reservar porción' : 'Ver menú'}
                   </Link>
                 )}
                 </div>

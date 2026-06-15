@@ -35,10 +35,10 @@ export function OrderConfirmed() {
 
   if (!state) return <Navigate to="/" replace />
 
+  const totalQty = state.items.reduce((s, i) => s + i.qty, 0)
   const waText = [
-    `¡Hola! Hice el pedido #${state.orderNumber} en il nonno Lalo 🍝`,
-    `Menú: ${state.menuTitle} (${formatDateOnly(state.deliveryDate)})`,
-    ...state.items.map((item) => `• ${item.qty} × ${item.name}`),
+    `¡Hola! Hice el pedido #${state.orderNumber} en _il nonno Lalo_:`,
+    `${state.menuTitle} (${formatDateOnly(state.deliveryDate)}) · ${totalQty} ${totalQty === 1 ? 'porción' : 'porciones'}`,
     `Total: ${formatARS(state.total)}`,
     state.fulfillment === 'pickup' ? 'Paso a retirarlo.' : 'Es con delivery.',
   ].join('\n')
@@ -57,20 +57,10 @@ export function OrderConfirmed() {
         <p className="text-sm font-bold uppercase tracking-wide text-tomate-600">
           {state.menuTitle} · {formatDateOnly(state.deliveryDate)}
         </p>
-        <ul className="mt-3 space-y-1 text-sm text-navy-700">
-          {state.items.map((item, i) => (
-            <li key={i} className="flex justify-between">
-              <span>
-                {item.qty} × {item.name}
-              </span>
-              <span className="font-bold">{formatARS(item.price * item.qty)}</span>
-            </li>
-          ))}
-          <li className="flex justify-between border-t border-crema-200 pt-2 text-base font-bold text-navy-900">
-            <span>Total</span>
-            <span>{formatARS(state.total)}</span>
-          </li>
-        </ul>
+        <div className="mt-3 flex items-center justify-between text-sm text-navy-700">
+          <span>{totalQty} {totalQty === 1 ? 'porción' : 'porciones'}</span>
+          <span className="text-base font-bold text-navy-900">{formatARS(state.total)}</span>
+        </div>
         <p className="mt-3 text-xs text-navy-500">
           {state.fulfillment === 'pickup'
             ? pickupAddress
