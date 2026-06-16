@@ -1,9 +1,11 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, RequireAuth } from './context/AuthContext'
+import { CartProvider } from './lib/CartContext'
 import { PublicLayout } from './layouts/PublicLayout'
 import { AdminLayout } from './layouts/AdminLayout'
 import { Home } from './pages/public/Home'
 import { PublicMenu } from './pages/public/PublicMenu'
+import { Cart } from './pages/public/Cart'
 import { OrderConfirmed } from './pages/public/OrderConfirmed'
 import { Login } from './pages/admin/Login'
 import { ChangePassword } from './pages/admin/ChangePassword'
@@ -23,9 +25,10 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route element={<PublicLayout />}>
+          <Route element={<CartProvider><PublicLayout /></CartProvider>}>
             <Route path="/" element={<Home />} />
             <Route path="/menu/:menuId" element={<PublicMenu />} />
+            <Route path="/carrito" element={<Cart />} />
             <Route path="/pedido-confirmado" element={<OrderConfirmed />} />
           </Route>
 

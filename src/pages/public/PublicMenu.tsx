@@ -168,12 +168,14 @@ export function PublicMenu() {
 
       navigate('/pedido-confirmado', {
         state: {
-          orderNumber: body.order_number,
+          orderNumbers: [body.order_number],
           total: body.total,
-          menuTitle: menu.title,
-          deliveryDate: menu.delivery_date,
           fulfillment,
-          items: cart.map(({ item, qty }) => ({ name: item.dish_name, qty, price: item.unit_price })),
+          entries: [{
+            menuTitle: menu.title,
+            deliveryDate: menu.delivery_date,
+            items: cart.map(({ item, qty }) => ({ name: item.dish_name, qty, price: item.unit_price })),
+          }],
         },
       })
     } catch {
