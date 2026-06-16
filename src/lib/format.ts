@@ -14,6 +14,15 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+/** Formatea una fecha 'YYYY-MM-DD' como '15 de junio' (sin día de semana). */
+export function formatDayMonth(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('es-AR', {
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
 /** Formatea una fecha 'YYYY-MM-DD' sin corrimientos de zona horaria. */
 export function formatDateOnly(date: string): string {
   const [year, month, day] = date.split('-').map(Number)

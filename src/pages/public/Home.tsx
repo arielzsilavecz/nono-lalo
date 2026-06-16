@@ -65,9 +65,16 @@ export function Home() {
                   <img src={coverImage} alt={menu.title} className="h-48 w-full object-cover" />
                 )}
                 <div className="flex flex-1 flex-col p-5">
-                <p className="text-sm font-bold uppercase tracking-wide text-tomate-600">
-                  {formatDateOnly(menu.delivery_date)}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold uppercase tracking-wide text-tomate-600">
+                    {formatDateOnly(menu.delivery_date)}
+                  </p>
+                  {menu.delivery_included && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                      Envío gratis
+                    </span>
+                  )}
+                </div>
                 <div className="mt-1 flex items-baseline justify-between gap-2">
                   <h3 className="font-script text-3xl font-bold text-navy-800">{menu.title}</h3>
                   {items[0] && (

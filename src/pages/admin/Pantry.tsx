@@ -398,7 +398,86 @@ export function Pantry() {
               </div>
             </div>
 
-            <Card className="p-0">
+            {/* Mobile: lista de cards */}
+            <div className="space-y-2 md:hidden">
+              {sortedFiltered.length === 0 && (
+                <p className="px-1 py-4 text-center text-sm text-navy-400">Sin resultados</p>
+              )}
+              {sortedFiltered.map(({ ingredient, currentStock, status }) => {
+                const cfg = STATUS_CONFIG[status]
+                const barPct = stockBarWidth(ingredient, currentStock)
+                return (
+                  <div key={ingredient.id} className="rounded-xl border border-crema-200 bg-white p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-navy-800">{ingredient.name}</p>
+                        <p className="mt-0.5 text-sm">
+                          <span className={`font-bold ${currentStock < 0 ? 'text-red-600' : 'text-navy-900'}`}>
+                            {formatQty(currentStock)} {ingredient.unit}
+                          </span>
+                          {ingredient.min_stock !== null && (
+                            <span className="text-navy-400"> / mín {formatQty(ingredient.min_stock)}</span>
+                          )}
+                        </p>
+                        <p className="mt-0.5 text-xs text-navy-500">
+                          {formatARS(Math.max(0, currentStock) * ingredient.current_price)}
+                          {' · '}
+                          {formatARS(ingredient.current_price)}/{ingredient.unit}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${cfg.badge}`}>{cfg.label}</span>
+                        <div className="relative" ref={openMenuId === ingredient.id ? menuRef : undefined}>
+                          <button
+                            type="button"
+                            onClick={() => setOpenMenuId(openMenuId === ingredient.id ? null : ingredient.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-navy-400 transition-colors hover:bg-crema-100 hover:text-navy-700"
+                          >
+                            <MoreVertical size={15} />
+                          </button>
+                          {openMenuId === ingredient.id && (
+                            <div className="absolute right-0 top-8 z-50 min-w-45 rounded-xl border border-crema-200 bg-white py-1 shadow-lg">
+                              <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'purchase', qty: '', newPrice: String(ingredient.current_price), notes: '' }); setOpenMenuId(null) }}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
+                                <ShoppingCart size={13} /> Agregar stock
+                              </button>
+                              <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'adjustment', qty: '', newPrice: '', notes: '' }); setOpenMenuId(null) }}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
+                                <SlidersHorizontal size={13} /> Ajustar inventario
+                              </button>
+                              <button type="button" onClick={() => { showIngredientMovements(ingredient); setOpenMenuId(null) }}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
+                                <History size={13} /> Ver movimientos
+                              </button>
+                              <button type="button" onClick={() => { showHistory(ingredient); setOpenMenuId(null) }}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
+                                <History size={13} /> Historial de precios
+                              </button>
+                              <div className="my-1 border-t border-crema-100" />
+                              <button type="button" onClick={() => { setIngredientEditor({ id: ingredient.id, name: ingredient.name, unit: ingredient.unit, price: String(ingredient.current_price), minStock: ingredient.min_stock !== null ? String(ingredient.min_stock) : '' }); setOpenMenuId(null) }}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
+                                <Pencil size={13} /> Editar ingrediente
+                              </button>
+                              <button type="button" onClick={() => { removeIngredient(ingredient); setOpenMenuId(null) }}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                <Trash2 size={13} /> Eliminar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {ingredient.min_stock !== null && (
+                      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-crema-200">
+                        <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${barPct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <Card className="hidden p-0 md:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-crema-200 text-xs font-bold uppercase tracking-wide text-navy-500">
@@ -471,7 +550,7 @@ export function Pantry() {
                               <MoreVertical size={15} />
                             </button>
                             {openMenuId === ingredient.id && (
-                              <div className="absolute right-0 top-8 z-50 min-w-[180px] rounded-xl border border-crema-200 bg-white py-1 shadow-lg">
+                              <div className="absolute right-0 top-8 z-50 min-w-45 rounded-xl border border-crema-200 bg-white py-1 shadow-lg">
                                 <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'purchase', qty: '', newPrice: String(ingredient.current_price), notes: '' }); setOpenMenuId(null) }}
                                   className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
                                   <ShoppingCart size={13} /> Agregar stock

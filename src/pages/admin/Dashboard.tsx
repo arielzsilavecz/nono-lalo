@@ -431,7 +431,7 @@ export function Dashboard() {
             <p className="mt-1 text-3xl font-bold text-navy-700">{stats.totalDishes}</p>
           </Card>
         </Link>
-        <Link to="/admin/ingredientes">
+        <Link to="/admin/despensa">
           <Card className="text-center transition-colors hover:border-tomate-300">
             <p className="text-sm font-semibold text-navy-600">Ingredientes cargados</p>
             <p className="mt-1 text-3xl font-bold text-navy-700">{stats.totalIngredients}</p>
@@ -442,7 +442,7 @@ export function Dashboard() {
       {/* Próximo menú */}
       <div className="mt-4">
         <Card>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-bold uppercase tracking-wide text-navy-500">Próximo menú</h2>
             {stats.nextMenu && (
               <div className="flex items-center gap-2">

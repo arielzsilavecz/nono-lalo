@@ -114,8 +114,9 @@ export function PublicMenu() {
         .filter((entry) => entry.qty > 0),
     [items, quantities],
   )
+  const deliveryFree = menu?.delivery_included ?? false
   const subtotal = cart.reduce((sum, { item, qty }) => sum + item.unit_price * qty, 0)
-  const total = subtotal + (fulfillment === 'delivery' && deliveryCost !== null ? deliveryCost : 0)
+  const total = subtotal + (fulfillment === 'delivery' && !deliveryFree && deliveryCost !== null ? deliveryCost : 0)
 
   function remainingFor(item: MenuItem): number | null {
     if (item.max_portions === null) return null
@@ -150,7 +151,7 @@ export function PublicMenu() {
           address: fulfillment === 'delivery' ? address : undefined,
           notes,
           items: cart.map(({ item, qty }) => ({ menu_item_id: item.id, qty })),
-          delivery_cost: fulfillment === 'delivery' && deliveryCost !== null ? deliveryCost : 0,
+          delivery_cost: fulfillment === 'delivery' && !deliveryFree && deliveryCost !== null ? deliveryCost : 0,
         }),
       })
       const body = await response.json()
@@ -268,10 +269,12 @@ export function PublicMenu() {
                     <span className="font-bold">{formatARS(item.unit_price * qty)}</span>
                   </li>
                 ))}
-                {fulfillment === 'delivery' && deliveryCost !== null && (
+                {fulfillment === 'delivery' && (
                   <li className="flex justify-between text-navy-600">
                     <span className="flex items-center gap-1"><MapPin size={12} /> Envío</span>
-                    <span className="font-bold">{formatARS(deliveryCost)}</span>
+                    <span className="font-bold">
+                      {deliveryFree ? 'Sin cargo' : deliveryCost !== null ? formatARS(deliveryCost) : '–'}
+                    </span>
                   </li>
                 )}
                 <li className="flex justify-between border-t border-crema-200 pt-2 text-base font-bold text-navy-900">
@@ -334,26 +337,32 @@ export function PublicMenu() {
                     placeholder="Calle 123, Barrio"
                   />
                 </Field>
-                <div className="flex items-center gap-1.5 text-sm font-bold text-navy-600">
-                  <button
-                    type="button"
-                    onClick={calcDeliveryCost}
-                    disabled={!address.trim() || geocoding || cooldown}
-                    className="flex items-center gap-1 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <MapPin size={13} />
-                    {geocoding ? 'Calculando…' : 'Calcular costo de envío'}
-                  </button>
-                  {!geocoding && deliveryCost !== null && (
-                    <>
-                      <span className="text-navy-400">›</span>
-                      <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
-                      {deliveryKm !== null && (
-                        <span className="font-semibold text-navy-500">({deliveryKm.toFixed(1).replace('.', ',')} km)</span>
-                      )}
-                    </>
-                  )}
-                </div>
+                {deliveryFree ? (
+                  <p className="flex items-center gap-1 text-sm font-bold text-emerald-700">
+                    <MapPin size={13} /> Envío sin cargo para este menú
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-sm font-bold text-navy-600">
+                    <button
+                      type="button"
+                      onClick={calcDeliveryCost}
+                      disabled={!address.trim() || geocoding || cooldown}
+                      className="flex items-center gap-1 hover:text-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <MapPin size={13} />
+                      {geocoding ? 'Calculando…' : 'Calcular costo de envío'}
+                    </button>
+                    {!geocoding && deliveryCost !== null && (
+                      <>
+                        <span className="text-navy-400">›</span>
+                        <span className="text-tomate-600">{formatARS(deliveryCost)}</span>
+                        {deliveryKm !== null && (
+                          <span className="font-semibold text-navy-500">({deliveryKm.toFixed(1).replace('.', ',')} km)</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

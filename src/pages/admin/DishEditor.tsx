@@ -27,6 +27,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
   const [marginPct, setMarginPct] = useState('50')
   const [manualPrice, setManualPrice] = useState('')
   const [cookingTime, setCookingTime] = useState('')
+  const [recipeYield, setRecipeYield] = useState('1')
   const [recipe, setRecipe] = useState<RecipeRow[]>([])
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -51,11 +52,13 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
           setMarginPct(String(dish.margin_pct))
           setManualPrice(dish.manual_price !== null ? String(dish.manual_price) : '')
           setCookingTime(dish.cooking_time !== null ? String(dish.cooking_time) : '')
+          const yld = dish.recipe_yield ?? 1
+          setRecipeYield(String(yld))
           setImageUrl(dish.image_url)
           setRecipe(
             ((recipeRows ?? []) as DishIngredient[]).map((row) => ({
               ingredient_id: row.ingredient_id,
-              qty: String(row.qty_per_portion),
+              qty: String(row.qty_per_portion * yld),
             })),
           )
         }
@@ -67,15 +70,17 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
 
   const ingredientById = useMemo(() => new Map(ingredients.map((i) => [i.id, i])), [ingredients])
 
+  const yld = Math.max(1, Number(recipeYield) || 1)
+
   const cost = useMemo(
     () =>
       recipe.reduce((sum, row) => {
         const ingredient = ingredientById.get(row.ingredient_id)
-        const qty = Number(row.qty)
+        const qty = Number(row.qty) / yld
         if (!ingredient || Number.isNaN(qty)) return sum
         return sum + qty * ingredient.current_price
       }, 0),
-    [recipe, ingredientById],
+    [recipe, ingredientById, yld],
   )
 
   const margin = Number(marginPct) || 0
@@ -134,6 +139,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
       margin_pct: margin,
       manual_price: manual,
       cooking_time: cookingTime.trim() === '' ? null : Number(cookingTime),
+      recipe_yield: yld,
     }
 
     let savedId = dishId
@@ -164,7 +170,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
         cleanRecipe.map((row) => ({
           dish_id: savedId,
           ingredient_id: row.ingredient_id,
-          qty_per_portion: Number(row.qty),
+          qty_per_portion: Number(row.qty) / yld,
         })),
       )
       if (recipeError) {
@@ -290,9 +296,21 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
         </Card>
 
         <Card>
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-navy-500">
-            Receta (por porción)
-          </h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-navy-500">Receta</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-navy-500">Rinde</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={recipeYield}
+                onChange={(e) => setRecipeYield(e.target.value)}
+                className="w-14 rounded-lg border border-crema-300 bg-white px-2 py-1 text-center text-sm font-bold text-navy-800 focus:border-navy-400 focus:outline-none"
+              />
+              <span className="text-xs text-navy-500">porciones</span>
+            </div>
+          </div>
 
           {ingredients.length === 0 ? (
             <p className="text-sm text-navy-500">
@@ -347,6 +365,12 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
           )}
 
           <div className="mt-5 rounded-xl bg-crema-100 p-4 text-sm">
+            {yld > 1 && (
+              <div className="mb-2 flex justify-between text-xs text-navy-400">
+                <span>Costo total ({yld} porciones)</span>
+                <span className="tabular-nums">{formatARS(cost * yld)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="font-semibold text-navy-600">Costo por porción</span>
               <span className="font-bold text-navy-900">{formatARS(cost)}</span>

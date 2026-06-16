@@ -50,7 +50,44 @@ export function Dishes() {
           Creá tus platos con su receta para calcular costos y precios.
         </EmptyState>
       ) : (
-        <Card className="overflow-x-auto p-0">
+        <>
+        {/* Mobile: lista de cards */}
+        <div className="space-y-2 md:hidden">
+          {dishes.map((dish) => {
+            const recipe = recipes.filter((r) => r.dish_id === dish.id)
+            const cost = dishCost(recipe, ingredientById)
+            const price = effectivePrice(dish, cost)
+            return (
+              <button
+                key={dish.id}
+                type="button"
+                onClick={() => setOpenId(dish.id)}
+                className="flex w-full items-center gap-3 rounded-xl border border-crema-200 bg-white p-3 text-left transition-colors hover:border-tomate-300"
+              >
+                {dish.image_url ? (
+                  <img src={dish.image_url} alt={dish.name} className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <div className="h-12 w-12 shrink-0 rounded-lg bg-crema-200" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-navy-800">{dish.name}</p>
+                  {recipe.length === 0 ? (
+                    <p className="text-xs text-tomate-600">Sin receta cargada</p>
+                  ) : (
+                    <p className="text-xs text-navy-500">Costo {formatARS(cost)} · margen {dish.margin_pct}%</p>
+                  )}
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-bold text-navy-900">{formatARS(price)}</p>
+                  {dish.manual_price !== null && <p className="text-xs text-navy-400">manual</p>}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Desktop: tabla */}
+        <Card className="hidden overflow-x-auto p-0 md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-crema-200 text-xs font-bold uppercase tracking-wide text-navy-500">
@@ -105,6 +142,7 @@ export function Dishes() {
             </tbody>
           </table>
         </Card>
+        </>
       )}
 
       {openId && (

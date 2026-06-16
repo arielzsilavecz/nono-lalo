@@ -46,12 +46,14 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [recipes, setRecipes] = useState<DishIngredient[]>([])
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
+  const [pantryStock, setPantryStock] = useState<Map<string, number>>(new Map())
 
   // form state
   const [status, setStatus] = useState<MenuStatus>('draft')
   const [selectedDishId, setSelectedDishId] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [openUntilSoldOut, setOpenUntilSoldOut] = useState(false)
+  const [deliveryIncluded, setDeliveryIncluded] = useState(false)
   const [deadlineLocal, setDeadlineLocal] = useState('')
   const [price, setPrice] = useState('')
   const [maxPortions, setMaxPortions] = useState('')
@@ -68,15 +70,17 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
 
   useEffect(() => {
     async function load() {
-      const [dishesRes, recipesRes, ingredientsRes] = await Promise.all([
+      const [dishesRes, recipesRes, ingredientsRes, stockRes] = await Promise.all([
         supabase.from('dishes').select('*').eq('active', true).order('name'),
         supabase.from('dish_ingredients').select('*'),
         supabase.from('ingredients').select('*'),
+        supabase.from('pantry_stock').select('ingredient_id, stock'),
       ])
       const dishList = (dishesRes.data ?? []) as Dish[]
       setDishes(dishList)
       setRecipes((recipesRes.data ?? []) as DishIngredient[])
       setIngredients((ingredientsRes.data ?? []) as Ingredient[])
+      setPantryStock(new Map((stockRes.data ?? []).map((r: { ingredient_id: string; stock: number }) => [r.ingredient_id, r.stock])))
 
       if (!isNew && pubId) {
         const [{ data: menuRow }, { data: itemRows }, { data: ordersData }] = await Promise.all([
@@ -93,6 +97,7 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
           setOpenUntilSoldOut(menu.order_deadline === null)
           if (menu.order_deadline !== null) setDeadlineLocal(toDatetimeLocal(menu.order_deadline))
           setNotes(menu.notes)
+          setDeliveryIncluded(menu.delivery_included ?? false)
         }
         if (item) {
           setMenuItemId(item.id)
@@ -134,6 +139,19 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
     return dishCost(recipe, ingredientById)
   }, [selectedDish, recipes, ingredientById])
 
+  const maxFromStock = useMemo(() => {
+    if (!isNew || !selectedDish || pantryStock.size === 0) return null
+    const dishRecipe = recipes.filter((r) => r.dish_id === selectedDish.id)
+    if (dishRecipe.length === 0) return null
+    let min = Infinity
+    for (const row of dishRecipe) {
+      if (row.qty_per_portion <= 0) continue
+      const stock = pantryStock.get(row.ingredient_id) ?? 0
+      min = Math.min(min, Math.floor(stock / row.qty_per_portion))
+    }
+    return min === Infinity ? null : Math.max(0, min)
+  }, [isNew, selectedDish, recipes, pantryStock])
+
   async function save(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -161,6 +179,7 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
       delivery_date: deliveryDate,
       order_deadline: openUntilSoldOut ? null : fromDatetimeLocal(deadlineLocal),
       notes: notes.trim(),
+      delivery_included: deliveryIncluded,
       ...(isNew ? { status: 'published' } : {}),
     }
 
@@ -308,7 +327,7 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
               )}
             </Field>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Fecha de entrega">
                 <Input
                   required
@@ -329,17 +348,28 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
               )}
             </div>
 
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-navy-700">
-              <input
-                type="checkbox"
-                checked={openUntilSoldOut}
-                onChange={(e) => setOpenUntilSoldOut(e.target.checked)}
-                className="h-4 w-4 accent-tomate-500"
-              />
-              Publicar hasta agotar stock
-            </label>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-navy-700">
+                <input
+                  type="checkbox"
+                  checked={openUntilSoldOut}
+                  onChange={(e) => setOpenUntilSoldOut(e.target.checked)}
+                  className="h-4 w-4 accent-tomate-500"
+                />
+                Publicar hasta agotar stock
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-navy-700">
+                <input
+                  type="checkbox"
+                  checked={deliveryIncluded}
+                  onChange={(e) => setDeliveryIncluded(e.target.checked)}
+                  className="h-4 w-4 accent-tomate-500"
+                />
+                Envío incluido
+              </label>
+            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Precio por porción" hint={cost > 0 ? `Costo: ${formatARS(cost)}` : undefined}>
                 <InputAdorn
                   prefix="$"
@@ -351,7 +381,16 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
                   onChange={(e) => setPrice(e.target.value)}
                 />
               </Field>
-              <Field label="Cupo de porciones" hint={openUntilSoldOut ? 'Requerido cuando publicás hasta agotar stock' : 'Vacío = sin límite'}>
+              <Field
+                label="Cupo de porciones"
+                hint={
+                  openUntilSoldOut
+                    ? 'Requerido cuando publicás hasta agotar stock'
+                    : isNew && maxFromStock !== null
+                      ? `Stock actual alcanza para ${maxFromStock} ${maxFromStock === 1 ? 'porción' : 'porciones'}`
+                      : 'Vacío = sin límite'
+                }
+              >
                 <Input
                   type="number"
                   min="1"

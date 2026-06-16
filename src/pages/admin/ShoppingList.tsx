@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Ingredient, Menu } from '../../lib/types'
-import { formatARS, formatDateOnly, formatQty } from '../../lib/format'
+import { formatARS, formatDateOnly, formatDayMonth, formatQty } from '../../lib/format'
 import { Button, Card, EmptyState, LoadingBlock, PageTitle, Select } from '../../components/ui'
 
 interface ShoppingRow {
@@ -144,7 +144,7 @@ export function ShoppingList() {
         >
           {menus.map((menu) => (
             <option key={menu.id} value={menu.id}>
-              {menu.title} ({menu.delivery_date})
+              {menu.title} · {formatDayMonth(menu.delivery_date)}
             </option>
           ))}
         </Select>
@@ -182,7 +182,34 @@ export function ShoppingList() {
           Cuando haya pedidos con porciones, acá vas a ver cuánto comprar de cada ingrediente.
         </EmptyState>
       ) : (
-        <Card className="overflow-x-auto p-0">
+        <>
+        {/* Mobile: lista de cards */}
+        <div className="space-y-2 md:hidden print:hidden">
+          {rows.map((row) => (
+            <div
+              key={row.ingredient.id}
+              className={`flex items-center justify-between gap-3 rounded-xl border border-crema-200 bg-white px-4 py-3 ${row.toBuy <= 0 ? 'opacity-50' : ''}`}
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-navy-800">{row.ingredient.name}</p>
+                <p className="text-xs text-navy-500">
+                  Necesario {formatQty(row.needed)} · en despensa {formatQty(row.inPantry)} {row.ingredient.unit}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="font-bold text-navy-900">{formatQty(row.toBuy)} {row.ingredient.unit}</p>
+                <p className="text-xs font-bold text-tomate-600">{formatARS(row.cost)}</p>
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center justify-between rounded-xl bg-crema-100 px-4 py-3">
+            <span className="font-bold text-navy-900">Total estimado</span>
+            <span className="text-lg font-bold text-tomate-600">{formatARS(totalCost)}</span>
+          </div>
+        </div>
+
+        {/* Desktop / impresión: tabla */}
+        <Card className="hidden overflow-x-auto p-0 md:block print:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-crema-200 text-left text-xs font-bold uppercase tracking-wide text-navy-500">
@@ -225,6 +252,7 @@ export function ShoppingList() {
             </tbody>
           </table>
         </Card>
+        </>
       )}
     </div>
   )

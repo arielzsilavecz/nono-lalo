@@ -8,8 +8,6 @@ import { OrderConfirmed } from './pages/public/OrderConfirmed'
 import { Login } from './pages/admin/Login'
 import { ChangePassword } from './pages/admin/ChangePassword'
 import { Dashboard } from './pages/admin/Dashboard'
-import { Menus } from './pages/admin/Menus'
-import { MenuEditor } from './pages/admin/MenuEditor'
 import { Publications } from './pages/admin/Publications'
 import { PublicationEditor } from './pages/admin/PublicationEditor'
 import { Orders } from './pages/admin/Orders'
@@ -44,8 +42,6 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="publicaciones" element={<Publications />} />
             <Route path="publicaciones/:pubId" element={<PublicationEditor />} />
-            <Route path="menus" element={<Menus />} />
-            <Route path="menus/:menuId" element={<MenuEditor />} />
             <Route path="pedidos" element={<Orders />} />
             <Route path="clientes" element={<Customers />} />
             <Route path="compras" element={<ShoppingList />} />

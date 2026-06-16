@@ -231,7 +231,38 @@ export function Customers() {
             : 'Ningún cliente coincide con la búsqueda.'}
         </EmptyState>
       ) : (
-        <Card className="p-0! overflow-hidden">
+        <>
+        {/* Mobile: lista de cards */}
+        <div className="space-y-2 md:hidden">
+          {visible.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setOpenId(c.id)}
+              className="flex w-full items-center justify-between gap-3 rounded-xl border border-crema-200 bg-white px-4 py-3 text-left transition-colors hover:border-tomate-300"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-navy-800">{c.name}</p>
+                <a
+                  href={waLink(c.phone, `¡Hola ${c.name}! Te escribimos de _il nonno Lalo_.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm font-bold text-emerald-700 underline"
+                >
+                  {c.phone}
+                </a>
+                {c.address && (
+                  <p className="mt-0.5 truncate text-xs text-navy-500">{c.address}</p>
+                )}
+              </div>
+              <Pencil size={15} className="shrink-0 text-navy-400" />
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop: tabla */}
+        <Card className="hidden p-0! overflow-hidden md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-crema-200 bg-crema-100 text-xs font-bold uppercase tracking-wide text-navy-500">
@@ -289,6 +320,7 @@ export function Customers() {
             </tbody>
           </table>
         </Card>
+        </>
       )}
 
       {openId && (
