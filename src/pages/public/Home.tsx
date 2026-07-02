@@ -5,6 +5,7 @@ import type { Menu, MenuItem } from '../../lib/types'
 import { formatARS, formatDateOnly, formatDateTime, todayDateValue } from '../../lib/format'
 import { Card, EmptyState, LoadingBlock } from '../../components/ui'
 import { useCart } from '../../lib/CartContext'
+import { imageFitStyle } from '../../lib/imageStyle'
 
 export function Home() {
   const [menus, setMenus] = useState<Menu[]>([])
@@ -57,7 +58,10 @@ export function Home() {
           {menus.map((menu) => {
             const items = itemsByMenu.get(menu.id) ?? []
             const open = menu.order_deadline === null || Date.parse(menu.order_deadline) > Date.now()
-            const coverImage = items.find((i) => i.image_url)?.image_url ?? null
+            const coverItem = items.find((i) => i.image_url)
+            const coverImage = coverItem?.image_url ?? null
+            const coverPosition = coverItem?.image_position ?? 'center center'
+            const coverZoom = coverItem?.image_zoom ?? 1
             const soldOut = items[0] !== undefined
               && items[0].max_portions !== null
               && items[0].reserved_portions >= items[0].max_portions
@@ -89,7 +93,12 @@ export function Home() {
             return (
               <Card key={menu.id} className="relative flex flex-col overflow-hidden p-0!">
                 {coverImage && (
-                  <img src={coverImage} alt={menu.title} className="h-48 w-full object-cover" />
+                  <img
+                    src={coverImage}
+                    alt={menu.title}
+                    className="aspect-2/1 w-full object-cover"
+                    style={imageFitStyle(coverPosition, coverZoom)}
+                  />
                 )}
                 <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-center gap-2">

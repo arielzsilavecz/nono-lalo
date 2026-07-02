@@ -28,6 +28,8 @@ export interface Dish {
   recipe_yield: number
   active: boolean
   image_url: string | null
+  image_position: string
+  image_zoom: number
   created_at: string
 }
 
@@ -60,6 +62,8 @@ export interface MenuItem {
   max_portions: number | null
   reserved_portions: number
   image_url: string | null
+  image_position: string
+  image_zoom: number
 }
 
 export type OrderStatus = 'pending' | 'confirmed' | 'ready' | 'delivered' | 'cancelled'

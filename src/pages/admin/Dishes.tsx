@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import type { Dish, DishIngredient, Ingredient } from '../../lib/types'
 import { dishCost, effectivePrice, roundPrice, suggestedPrice } from '../../lib/costing'
 import { formatARS } from '../../lib/format'
+import { imageFitStyle } from '../../lib/imageStyle'
 import { Button, Card, EmptyState, LoadingBlock, PageTitle } from '../../components/ui'
 import { Pencil } from 'lucide-react'
 import { ModalOverlay } from '../../components/ModalOverlay'
@@ -65,9 +66,16 @@ export function Dishes() {
                 className="flex w-full items-center gap-3 rounded-xl border border-crema-200 bg-white p-3 text-left transition-colors hover:border-tomate-300"
               >
                 {dish.image_url ? (
-                  <img src={dish.image_url} alt={dish.name} className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                  <div className="aspect-2/1 w-20 shrink-0 overflow-hidden rounded-lg">
+                    <img
+                      src={dish.image_url}
+                      alt={dish.name}
+                      className="h-full w-full object-cover"
+                      style={imageFitStyle(dish.image_position, dish.image_zoom)}
+                    />
+                  </div>
                 ) : (
-                  <div className="h-12 w-12 shrink-0 rounded-lg bg-crema-200" />
+                  <div className="aspect-2/1 w-20 shrink-0 rounded-lg bg-crema-200" />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-navy-800">{dish.name}</p>
@@ -110,9 +118,16 @@ export function Dishes() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {dish.image_url ? (
-                          <img src={dish.image_url} alt={dish.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                          <div className="aspect-2/1 w-16 shrink-0 overflow-hidden rounded-lg">
+                            <img
+                              src={dish.image_url}
+                              alt={dish.name}
+                              className="h-full w-full object-cover"
+                              style={imageFitStyle(dish.image_position, dish.image_zoom)}
+                            />
+                          </div>
                         ) : (
-                          <div className="h-10 w-10 shrink-0 rounded-lg bg-crema-200" />
+                          <div className="aspect-2/1 w-16 shrink-0 rounded-lg bg-crema-200" />
                         )}
                         <div>
                           <p className="font-semibold text-navy-800">{dish.name}</p>

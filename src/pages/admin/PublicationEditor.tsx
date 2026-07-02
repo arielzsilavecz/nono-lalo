@@ -201,6 +201,8 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
       unit_price: Number(price),
       max_portions: maxPortions.trim() === '' ? null : Number(maxPortions),
       image_url: dish.image_url,
+      image_position: dish.image_position,
+      image_zoom: dish.image_zoom,
     }
 
     if (isNew) {
@@ -212,6 +214,8 @@ export function PublicationEditor({ embeddedId, onClose }: Props = {}) {
         max_portions: maxPortions.trim() === '' ? null : Number(maxPortions),
         dish_description: dish.description,
         image_url: dish.image_url,
+        image_position: dish.image_position,
+        image_zoom: dish.image_zoom,
       }).eq('id', menuItemId)
       if (itemError) { setError('No se pudo actualizar el plato.'); setSaving(false); return }
     }

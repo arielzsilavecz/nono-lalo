@@ -5,6 +5,7 @@ import type { Dish, DishIngredient, Ingredient } from '../../lib/types'
 import { roundPrice, suggestedPrice } from '../../lib/costing'
 import { formatARS } from '../../lib/format'
 import { Button, Card, ErrorText, Field, Input, InputAdorn, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
+import { ImagePositionEditor } from '../../components/ImagePositionEditor'
 
 interface RecipeRow {
   ingredient_id: string
@@ -30,6 +31,8 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
   const [recipeYield, setRecipeYield] = useState('1')
   const [recipe, setRecipe] = useState<RecipeRow[]>([])
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imagePosition, setImagePosition] = useState('0% 0%')
+  const [imageZoom, setImageZoom] = useState(1)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -55,6 +58,8 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
           const yld = dish.recipe_yield ?? 1
           setRecipeYield(String(yld))
           setImageUrl(dish.image_url)
+          setImagePosition(dish.image_position)
+          setImageZoom(dish.image_zoom)
           setRecipe(
             ((recipeRows ?? []) as DishIngredient[]).map((row) => ({
               ingredient_id: row.ingredient_id,
@@ -97,11 +102,15 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
     setRecipe((rows) => [...rows, { ingredient_id: firstFree.id, qty: '' }])
   }
 
+  function setFile(file: File) {
+    setPendingFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setPendingFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    setFile(file)
     e.target.value = ''
   }
 
@@ -140,6 +149,8 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
       manual_price: manual,
       cooking_time: cookingTime.trim() === '' ? null : Number(cookingTime),
       recipe_yield: yld,
+      image_position: imagePosition,
+      image_zoom: imageZoom,
     }
 
     let savedId = dishId
@@ -261,26 +272,15 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
             <div>
               <span className="mb-1 block text-sm font-bold text-navy-700">Imagen del plato</span>
               {(imagePreview ?? imageUrl) ? (
-                <div className="relative w-full overflow-hidden rounded-xl">
-                  <img
-                    src={imagePreview ?? imageUrl!}
-                    alt={name}
-                    className="h-48 w-full object-cover"
-                  />
-                  <div className="absolute bottom-2 right-2 flex gap-2">
-                    <label className="cursor-pointer rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-navy-700 shadow hover:bg-white">
-                      Cambiar
-                      <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="cursor-pointer rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-tomate-600 shadow hover:bg-white"
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                </div>
+                <ImagePositionEditor
+                  imageUrl={(imagePreview ?? imageUrl)!}
+                  position={imagePosition}
+                  zoom={imageZoom}
+                  onPositionChange={setImagePosition}
+                  onZoomChange={setImageZoom}
+                  onSelectFile={setFile}
+                  onRemove={removeImage}
+                />
               ) : (
                 <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-crema-300 bg-crema-50 text-navy-500 hover:border-navy-400 hover:bg-crema-100">
                   <svg className="h-8 w-8 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
