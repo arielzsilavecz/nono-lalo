@@ -427,13 +427,13 @@ export function Dashboard() {
         </Card>
         <Link to="/admin/platos">
           <Card className="text-center transition-colors hover:border-tomate-300">
-            <p className="text-sm font-semibold text-navy-600">Platos en recetario</p>
+            <p className="text-sm font-semibold text-navy-600">Platos</p>
             <p className="mt-1 text-3xl font-bold text-navy-700">{stats.totalDishes}</p>
           </Card>
         </Link>
         <Link to="/admin/despensa">
           <Card className="text-center transition-colors hover:border-tomate-300">
-            <p className="text-sm font-semibold text-navy-600">Ingredientes cargados</p>
+            <p className="text-sm font-semibold text-navy-600">Ingredientes</p>
             <p className="mt-1 text-3xl font-bold text-navy-700">{stats.totalIngredients}</p>
           </Card>
         </Link>

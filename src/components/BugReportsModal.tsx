@@ -1,23 +1,30 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { formatShortDateTime } from '../lib/format'
-import { Check } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { Button, ErrorText, LoadingBlock } from './ui'
 import { ModalOverlay } from './ModalOverlay'
 
 interface BugReport {
   id: string
   description: string
-  image_url: string | null
+  page: string
+  image_data: string | null
   resolved: boolean
   created_at: string
 }
 
+const MAX_FILE_SIZE = 4 * 1024 * 1024 // 4 MB (frontend limit)
+const MAX_BASE64_SIZE = 8 * 1024 * 1024 // 8 MB (backend limit)
+
 export function BugReportsModal({ onClose }: { onClose: () => void }) {
+  const location = useLocation()
+
   const [reports, setReports] = useState<BugReport[] | null>(null)
   const [creating, setCreating] = useState(false)
   const [description, setDescription] = useState('')
-  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [imageData, setImageData] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -32,32 +39,73 @@ export function BugReportsModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    if (!creating) return
+    function handlePasteGlobal(e: ClipboardEvent) {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) {
+            readFile(file)
+            e.preventDefault()
+          }
+          break
+        }
+      }
+    }
+    document.addEventListener('paste', handlePasteGlobal)
+    return () => document.removeEventListener('paste', handlePasteGlobal)
+  }, [creating])
+
+  function readFile(file: File | null) {
+    if (!file || !file.type.startsWith('image/')) {
+      setError('Solo se aceptan imágenes.')
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`La imagen no puede superar ${MAX_FILE_SIZE / 1024 / 1024} MB.`)
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      if (result.length > MAX_BASE64_SIZE) {
+        setError(`La imagen convertida es muy grande (máx ${MAX_BASE64_SIZE / 1024 / 1024} MB base64).`)
+        return
+      }
+      setImageData(result)
+      setError('')
+    }
+    reader.onerror = () => setError('Error al leer la imagen.')
+    reader.readAsDataURL(file)
+  }
+
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!description.trim()) { setError('Describí el problema.'); return }
+    if (!description.trim()) {
+      setError('Describí el problema.')
+      return
+    }
     setSaving(true)
     setError('')
 
-    let imageUrl: string | null = null
-    if (pendingFile) {
-      const ext = pendingFile.name.split('.').pop()
-      const path = `${Date.now()}.${ext}`
-      const { error: storageError } = await supabase.storage
-        .from('bug-reports')
-        .upload(path, pendingFile, { contentType: pendingFile.type })
-      if (!storageError) {
-        const { data: { publicUrl } } = supabase.storage.from('bug-reports').getPublicUrl(path)
-        imageUrl = publicUrl
-      }
-    }
-
     const { error: insertError } = await supabase.from('bug_reports').insert({
       description: description.trim(),
-      image_url: imageUrl,
+      page: location.pathname,
+      image_data: imageData,
     })
-    if (insertError) { setError('No se pudo guardar el reporte.'); setSaving(false); return }
+
+    if (insertError) {
+      setError('No se pudo guardar el reporte.')
+      setSaving(false)
+      return
+    }
+
     setDescription('')
-    setPendingFile(null)
+    setImageData(null)
     setCreating(false)
     setSaving(false)
     load()
@@ -88,27 +136,47 @@ export function BugReportsModal({ onClose }: { onClose: () => void }) {
               placeholder="Describí el problema…"
               className="w-full resize-none rounded-lg border border-crema-300 bg-crema-50 px-3 py-2 text-sm text-navy-800 placeholder-navy-400 focus:border-navy-400 focus:outline-none"
             />
-            <div>
-              <span className="text-xs font-semibold text-navy-600">Imagen (opcional)</span>
-              <div className="mt-1 flex items-center gap-2">
-                <label className="shrink-0 cursor-pointer rounded-full border border-crema-300 bg-crema-100 px-3 py-1 text-xs font-semibold text-navy-700 hover:bg-crema-200">
-                  Seleccionar archivo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
-                  />
-                </label>
-                {pendingFile && (
-                  <span className="min-w-0 truncate text-xs text-navy-400">{pendingFile.name}</span>
-                )}
+
+            <div className="space-y-2 rounded-lg border-2 border-dashed border-crema-300 bg-crema-50 p-4">
+              <div className="text-center">
+                <span className="text-xs font-semibold text-navy-600">Imagen (opcional)</span>
+                <p className="mt-1 text-xs text-navy-500">Pegá una captura (Ctrl+V) o seleccioná un archivo</p>
               </div>
+
+              {imageData ? (
+                <div className="space-y-2">
+                  <img src={imageData} alt="Preview" className="max-h-48 max-w-full rounded-lg object-contain mx-auto" />
+                  <button
+                    type="button"
+                    onClick={() => setImageData(null)}
+                    className="flex items-center justify-center gap-1 mx-auto rounded-full border border-crema-300 bg-crema-100 px-3 py-1 text-xs font-semibold text-navy-700 hover:bg-crema-200"
+                  >
+                    <X size={12} /> Quitar imagen
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center">
+                  <span className="inline-block rounded-full border border-crema-300 bg-crema-100 px-3 py-1 text-xs font-semibold text-navy-700 hover:bg-crema-200">
+                    Seleccionar archivo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => readFile(e.target.files?.[0] ?? null)}
+                    />
+                  </span>
+                </label>
+              )}
             </div>
+
             {error && <ErrorText>{error}</ErrorText>}
             <div className="flex gap-2">
-              <Button type="submit" disabled={saving}>{saving ? 'Enviando…' : 'Enviar reporte'}</Button>
-              <Button variant="ghost" type="button" onClick={() => { setCreating(false); setError('') }}>Cancelar</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Enviando…' : 'Enviar reporte'}
+              </Button>
+              <Button variant="ghost" type="button" onClick={() => { setCreating(false); setError('') }}>
+                Cancelar
+              </Button>
             </div>
           </form>
         )}
@@ -129,12 +197,12 @@ export function BugReportsModal({ onClose }: { onClose: () => void }) {
                     <p className={`text-sm ${r.resolved ? 'line-through text-navy-400' : 'text-navy-800'}`}>
                       {r.description}
                     </p>
-                    {r.image_url && (
-                      <a href={r.image_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                        <img src={r.image_url} alt="" className="max-h-40 rounded-lg object-contain" />
-                      </a>
+                    {r.image_data && (
+                      <img src={r.image_data} alt="" className="mt-2 max-h-40 rounded-lg object-contain" />
                     )}
-                    <p className="mt-1 text-xs text-navy-400">{formatShortDateTime(r.created_at)}</p>
+                    <p className="mt-1 text-xs text-navy-400">
+                      {formatShortDateTime(r.created_at)} · {r.page}
+                    </p>
                   </div>
                   <button
                     type="button"
