@@ -213,12 +213,14 @@ export function PublicMenu() {
           return (
             <Card key={item.id} className={`overflow-hidden p-0! ${soldOut ? 'opacity-60' : ''}`}>
               {item.image_url && (
-                <img
-                  src={item.image_url}
-                  alt={item.dish_name}
-                  className="aspect-2/1 w-full object-cover"
-                  style={imageFitStyle(item.image_position, item.image_zoom)}
-                />
+                <div className="aspect-2/1 w-full overflow-hidden">
+                  <img
+                    src={item.image_url}
+                    alt={item.dish_name}
+                    className="h-full w-full object-cover"
+                    style={imageFitStyle(item.image_position, item.image_zoom)}
+                  />
+                </div>
               )}
               <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                 <div className="min-w-0 flex-1">

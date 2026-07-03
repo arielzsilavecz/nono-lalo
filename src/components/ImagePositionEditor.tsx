@@ -59,7 +59,7 @@ export function ImagePositionEditor({
 
   return (
     <div>
-      <div className="flex gap-3">
+      <div className="flex items-start gap-3">
         {/* Interactive preview = exactly how it renders in the menu (h-52 w-full object-cover) */}
         <div
           ref={boxRef}

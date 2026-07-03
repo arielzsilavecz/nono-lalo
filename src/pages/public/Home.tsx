@@ -93,12 +93,14 @@ export function Home() {
             return (
               <Card key={menu.id} className="relative flex flex-col overflow-hidden p-0!">
                 {coverImage && (
-                  <img
-                    src={coverImage}
-                    alt={menu.title}
-                    className="aspect-2/1 w-full object-cover"
-                    style={imageFitStyle(coverPosition, coverZoom)}
-                  />
+                  <div className="aspect-2/1 w-full overflow-hidden">
+                    <img
+                      src={coverImage}
+                      alt={menu.title}
+                      className="h-full w-full object-cover"
+                      style={imageFitStyle(coverPosition, coverZoom)}
+                    />
+                  </div>
                 )}
                 <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-center gap-2">

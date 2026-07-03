@@ -5,7 +5,6 @@ import { dishCost, effectivePrice, roundPrice, suggestedPrice } from '../../lib/
 import { formatARS } from '../../lib/format'
 import { imageFitStyle } from '../../lib/imageStyle'
 import { Button, Card, EmptyState, LoadingBlock, PageTitle } from '../../components/ui'
-import { Pencil } from 'lucide-react'
 import { ModalOverlay } from '../../components/ModalOverlay'
 import { DishEditor } from './DishEditor'
 
@@ -104,7 +103,6 @@ export function Dishes() {
                 <th className="px-4 py-3 text-center">Margen</th>
                 <th className="px-4 py-3 text-center">Sugerido</th>
                 <th className="px-4 py-3 text-center">Precio</th>
-                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -114,7 +112,11 @@ export function Dishes() {
                 const suggested = roundPrice(suggestedPrice(cost, dish.margin_pct))
                 const price = effectivePrice(dish, cost)
                 return (
-                  <tr key={dish.id} className="border-b border-crema-100 last:border-0">
+                  <tr
+                    key={dish.id}
+                    onClick={() => setOpenId(dish.id)}
+                    className="cursor-pointer border-b border-crema-100 last:border-0 hover:bg-crema-50"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {dish.image_url ? (
@@ -145,11 +147,6 @@ export function Dishes() {
                       {dish.manual_price !== null && (
                         <span className="ml-1 text-xs font-semibold text-navy-400">(manual)</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Button variant="secondary" title="Editar" onClick={() => setOpenId(dish.id)}>
-                        <Pencil size={14} />
-                      </Button>
                     </td>
                   </tr>
                 )
