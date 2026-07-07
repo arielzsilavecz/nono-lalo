@@ -32,8 +32,14 @@ interface MovementEditor {
   ingredient: Ingredient
   mode: 'purchase' | 'adjustment'
   qty: string
-  newPrice: string
+  totalPaid: string
   notes: string
+}
+
+interface BatchRow {
+  ingredientId: string
+  qty: string
+  total: string
 }
 
 type StockStatus = 'ok' | 'low' | 'empty'
@@ -43,6 +49,19 @@ type SortCol = 'name' | 'stock' | 'min_stock' | 'status' | 'value' | 'price'
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const EMPTY_EDITOR: IngredientEditor = { id: null, name: '', unit: 'kg', price: '', minStock: '' }
+
+function unitPriceFrom(total: string, qty: string): number | null {
+  const totalNum = Number(total)
+  const qtyNum = Number(qty)
+  if (total.trim() === '' || Number.isNaN(totalNum) || !Number.isFinite(qtyNum) || qtyNum <= 0) return null
+  return Math.round((totalNum / qtyNum) * 100) / 100
+}
+
+function purchaseUnitPriceHint(m: MovementEditor): string {
+  const unitPrice = unitPriceFrom(m.totalPaid, m.qty)
+  if (unitPrice === null) return `Cargá la cantidad y lo que pagaste en total. Precio actual: ${formatARS(m.ingredient.current_price)}/${m.ingredient.unit}.`
+  return `≈ ${formatARS(unitPrice)} / ${m.ingredient.unit}`
+}
 
 function getStatus(ingredient: Ingredient, currentStock: number): StockStatus {
   if (currentStock <= 0) return 'empty'
@@ -67,11 +86,19 @@ function groupMovements(movements: MovementWithMenu[]): MovementGroup[] {
   const groups: MovementGroup[] = []
   const seenMenuIds = new Set<string>()
   const cookingByMenuId = new Map<string, MovementWithMenu[]>()
+  const seenPurchaseTimestamps = new Set<string>()
+  const purchaseByTimestamp = new Map<string, MovementWithMenu[]>()
 
   for (const m of movements) {
     if (m.reason === 'cooking' && m.menu_id) {
       if (!cookingByMenuId.has(m.menu_id)) cookingByMenuId.set(m.menu_id, [])
       cookingByMenuId.get(m.menu_id)!.push(m)
+    } else if (m.reason === 'purchase') {
+      // Una "Nueva compra" inserta varias filas en un solo INSERT: comparten el
+      // mismo created_at (now() es estable dentro de la transacción), así que
+      // agruparlas por timestamp las muestra como una sola entrada en la línea de tiempo.
+      if (!purchaseByTimestamp.has(m.created_at)) purchaseByTimestamp.set(m.created_at, [])
+      purchaseByTimestamp.get(m.created_at)!.push(m)
     }
   }
 
@@ -87,10 +114,21 @@ function groupMovements(movements: MovementWithMenu[]): MovementGroup[] {
           movements: cookingByMenuId.get(m.menu_id)!,
         })
       }
+    } else if (m.reason === 'purchase') {
+      if (!seenPurchaseTimestamps.has(m.created_at)) {
+        seenPurchaseTimestamps.add(m.created_at)
+        groups.push({
+          key: `purchase-${m.created_at}`,
+          label: 'Compra',
+          reason: 'purchase',
+          datetime: m.created_at,
+          movements: purchaseByTimestamp.get(m.created_at)!,
+        })
+      }
     } else {
       groups.push({
         key: m.id,
-        label: m.reason === 'purchase' ? 'Compra' : 'Ajuste manual',
+        label: 'Ajuste manual',
         reason: m.reason,
         datetime: m.created_at,
         movements: [m],
@@ -114,6 +152,13 @@ export function Pantry() {
   const [history, setHistory] = useState<IngredientPriceEntry[]>([])
   const [movementsFor, setMovementsFor] = useState<Ingredient | null>(null)
   const [ingredientMovements, setIngredientMovements] = useState<MovementWithMenu[]>([])
+
+  const [batchOpen, setBatchOpen] = useState(false)
+  const [batchSearch, setBatchSearch] = useState('')
+  const [batchRows, setBatchRows] = useState<BatchRow[]>([])
+  const [batchNotes, setBatchNotes] = useState('')
+  const [batchError, setBatchError] = useState('')
+  const [batchSaving, setBatchSaving] = useState(false)
 
   const [ingredientError, setIngredientError] = useState('')
   const [moveError, setMoveError] = useState('')
@@ -218,13 +263,79 @@ export function Pantry() {
       notes: movementEditor.notes.trim(),
     })
     if (insertError) { setMoveError('No se pudo registrar el movimiento.'); return }
-    if (movementEditor.mode === 'purchase' && movementEditor.newPrice.trim() !== '') {
-      const newPrice = Number(movementEditor.newPrice)
-      if (!Number.isNaN(newPrice) && newPrice >= 0 && newPrice !== movementEditor.ingredient.current_price) {
-        await supabase.from('ingredients').update({ current_price: newPrice }).eq('id', movementEditor.ingredient.id)
+    if (movementEditor.mode === 'purchase') {
+      const unitPrice = unitPriceFrom(movementEditor.totalPaid, movementEditor.qty)
+      if (unitPrice !== null && unitPrice !== movementEditor.ingredient.current_price) {
+        await supabase.from('ingredients').update({ current_price: unitPrice }).eq('id', movementEditor.ingredient.id)
       }
     }
     setMovementEditor(null)
+    load()
+  }
+
+  // ── Nueva compra (lote) ──
+
+  function openBatch() {
+    setBatchOpen(true)
+    setBatchSearch('')
+    setBatchRows([])
+    setBatchNotes('')
+    setBatchError('')
+  }
+
+  function toggleBatchRow(ingredientId: string) {
+    setBatchRows((rows) =>
+      rows.some((r) => r.ingredientId === ingredientId)
+        ? rows.filter((r) => r.ingredientId !== ingredientId)
+        : [...rows, { ingredientId, qty: '', total: '' }],
+    )
+  }
+
+  function updateBatchRow(ingredientId: string, patch: Partial<BatchRow>) {
+    setBatchRows((rows) => rows.map((r) => (r.ingredientId === ingredientId ? { ...r, ...patch } : r)))
+  }
+
+  async function saveBatch(e: React.FormEvent) {
+    e.preventDefault()
+    setBatchError('')
+    if (batchRows.length === 0) { setBatchError('Seleccioná al menos un ingrediente.'); return }
+    for (const row of batchRows) {
+      const qty = Number(row.qty)
+      if (Number.isNaN(qty) || qty <= 0) {
+        setBatchError(`Revisá la cantidad de "${ingredientById.get(row.ingredientId)?.name ?? ''}".`)
+        return
+      }
+    }
+
+    setBatchSaving(true)
+    const { error: insertError } = await supabase.from('pantry_movements').insert(
+      batchRows.map((row) => ({
+        ingredient_id: row.ingredientId,
+        qty: Number(row.qty),
+        reason: 'purchase' as const,
+        notes: batchNotes.trim(),
+      })),
+    )
+    if (insertError) {
+      setBatchError('No se pudo registrar la compra.')
+      setBatchSaving(false)
+      return
+    }
+
+    const priceUpdates = batchRows
+      .map((row) => {
+        const ingredient = ingredientById.get(row.ingredientId)
+        const unitPrice = unitPriceFrom(row.total, row.qty)
+        if (!ingredient || unitPrice === null || unitPrice === ingredient.current_price) return null
+        return { id: row.ingredientId, price: unitPrice }
+      })
+      .filter((u): u is { id: string; price: number } => u !== null)
+    await Promise.all(
+      priceUpdates.map((u) => supabase.from('ingredients').update({ current_price: u.price }).eq('id', u.id)),
+    )
+
+    setBatchSaving(false)
+    setBatchOpen(false)
     load()
   }
 
@@ -233,6 +344,11 @@ export function Pantry() {
   if (!ingredients) return <LoadingBlock />
 
   const ingredientById = new Map(ingredients.map((i) => [i.id, i]))
+
+  const batchFilteredIngredients = ingredients.filter((i) =>
+    i.name.toLowerCase().includes(batchSearch.toLowerCase()),
+  )
+  const batchGrandTotal = batchRows.reduce((sum, r) => sum + (Number(r.total) || 0), 0)
 
   const withStatus = ingredients
     .map((i) => ({ ingredient: i, currentStock: stock.get(i.id) ?? 0, status: getStatus(i, stock.get(i.id) ?? 0) }))
@@ -279,7 +395,14 @@ export function Pantry() {
     <div className="space-y-4">
       <PageTitle
         title="Despensa"
-        action={<Button onClick={() => setIngredientEditor(EMPTY_EDITOR)}>+ Nuevo ingrediente</Button>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={openBatch}>
+              <ShoppingCart size={14} /> Nueva compra
+            </Button>
+            <Button onClick={() => setIngredientEditor(EMPTY_EDITOR)}>+ Nuevo ingrediente</Button>
+          </div>
+        }
       />
 
       {/* Dashboard cards */}
@@ -322,7 +445,7 @@ export function Pantry() {
             {critical.map(({ ingredient, currentStock, status }) => (
               <div
                 key={ingredient.id}
-                className={`flex min-w-[160px] flex-col gap-1 rounded-lg border px-3 py-2 text-sm ${
+                className={`flex min-w-40 flex-col gap-1 rounded-lg border px-3 py-2 text-sm ${
                   status === 'empty'
                     ? 'border-red-300 bg-white'
                     : 'border-amber-300 bg-white'
@@ -335,7 +458,7 @@ export function Pantry() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setMovementEditor({ ingredient, mode: 'purchase', qty: '', newPrice: String(ingredient.current_price), notes: '' })}
+                  onClick={() => setMovementEditor({ ingredient, mode: 'purchase', qty: '', totalPaid: '', notes: '' })}
                   className={`mt-1 flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
                     status === 'empty'
                       ? 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -437,11 +560,11 @@ export function Pantry() {
                           </button>
                           {openMenuId === ingredient.id && (
                             <div className="absolute right-0 top-8 z-50 min-w-45 rounded-xl border border-crema-200 bg-white py-1 shadow-lg">
-                              <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'purchase', qty: '', newPrice: String(ingredient.current_price), notes: '' }); setOpenMenuId(null) }}
+                              <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'purchase', qty: '', totalPaid: '', notes: '' }); setOpenMenuId(null) }}
                                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
                                 <ShoppingCart size={13} /> Agregar stock
                               </button>
-                              <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'adjustment', qty: '', newPrice: '', notes: '' }); setOpenMenuId(null) }}
+                              <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'adjustment', qty: '', totalPaid: '', notes: '' }); setOpenMenuId(null) }}
                                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
                                 <SlidersHorizontal size={13} /> Ajustar inventario
                               </button>
@@ -551,11 +674,11 @@ export function Pantry() {
                             </button>
                             {openMenuId === ingredient.id && (
                               <div className="absolute right-0 top-8 z-50 min-w-45 rounded-xl border border-crema-200 bg-white py-1 shadow-lg">
-                                <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'purchase', qty: '', newPrice: String(ingredient.current_price), notes: '' }); setOpenMenuId(null) }}
+                                <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'purchase', qty: '', totalPaid: '', notes: '' }); setOpenMenuId(null) }}
                                   className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
                                   <ShoppingCart size={13} /> Agregar stock
                                 </button>
-                                <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'adjustment', qty: '', newPrice: '', notes: '' }); setOpenMenuId(null) }}
+                                <button type="button" onClick={() => { setMovementEditor({ ingredient, mode: 'adjustment', qty: '', totalPaid: '', notes: '' }); setOpenMenuId(null) }}
                                   className="flex w-full items-center gap-2 px-4 py-2 text-sm text-navy-700 hover:bg-crema-50">
                                   <SlidersHorizontal size={13} /> Ajustar inventario
                                 </button>
@@ -686,10 +809,9 @@ export function Pantry() {
                 onChange={(e) => setMovementEditor({ ...movementEditor, qty: e.target.value })} />
             </Field>
             {movementEditor.mode === 'purchase' && (
-              <Field label={`Precio por ${movementEditor.ingredient.unit} ($)`}
-                hint="Si cambió, actualiza el precio del ingrediente y el costeo de los platos.">
-                <Input type="number" min="0" step="0.01" value={movementEditor.newPrice}
-                  onChange={(e) => setMovementEditor({ ...movementEditor, newPrice: e.target.value })} />
+              <Field label="Total pagado ($)" hint={purchaseUnitPriceHint(movementEditor)}>
+                <Input type="number" min="0" step="0.01" value={movementEditor.totalPaid}
+                  onChange={(e) => setMovementEditor({ ...movementEditor, totalPaid: e.target.value })} />
               </Field>
             )}
             <Field label="Nota (opcional)">
@@ -746,6 +868,94 @@ export function Pantry() {
               ))}
             </ul>
           )}
+        </Modal>
+      )}
+
+      {/* Modal: nueva compra (lote) */}
+      {batchOpen && (
+        <Modal title="Nueva compra" onClose={() => setBatchOpen(false)}>
+          <form onSubmit={saveBatch} className="space-y-4">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-400" />
+              <input
+                type="text"
+                value={batchSearch}
+                onChange={(e) => setBatchSearch(e.target.value)}
+                placeholder="Buscar ingrediente..."
+                className="w-full rounded-full border border-crema-300 bg-white py-1.5 pl-8 pr-3 text-sm text-navy-800 placeholder-navy-400 focus:border-navy-400 focus:outline-none"
+              />
+            </div>
+
+            <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-crema-200 p-2">
+              {batchFilteredIngredients.length === 0 && (
+                <p className="px-2 py-3 text-center text-sm text-navy-400">Sin resultados</p>
+              )}
+              {batchFilteredIngredients.map((ingredient) => {
+                const row = batchRows.find((r) => r.ingredientId === ingredient.id)
+                const checked = !!row
+                const unitPrice = row ? unitPriceFrom(row.total, row.qty) : null
+                return (
+                  <div key={ingredient.id} className={`rounded-lg ${checked ? 'bg-crema-50' : ''}`}>
+                    <label className="flex cursor-pointer items-center gap-2 px-2 py-1.5">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleBatchRow(ingredient.id)}
+                        className="h-4 w-4 accent-tomate-500"
+                      />
+                      <span className="flex-1 text-sm font-semibold text-navy-800">{ingredient.name}</span>
+                      <span className="text-xs text-navy-400">{ingredient.unit}</span>
+                    </label>
+                    {row && (
+                      <div className="px-2 pb-2 pl-8">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number" min="0" step="0.001" autoFocus
+                            placeholder={`Cantidad (${ingredient.unit})`}
+                            value={row.qty}
+                            onChange={(e) => updateBatchRow(ingredient.id, { qty: e.target.value })}
+                          />
+                          <Input
+                            type="number" min="0" step="0.01"
+                            placeholder="Total pagado ($)"
+                            value={row.total}
+                            onChange={(e) => updateBatchRow(ingredient.id, { total: e.target.value })}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-navy-500">
+                          {unitPrice !== null
+                            ? `≈ ${formatARS(unitPrice)} / ${ingredient.unit}`
+                            : `Precio actual: ${formatARS(ingredient.current_price)} / ${ingredient.unit}`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <Field label="Nota (opcional)">
+              <Input value={batchNotes} placeholder="Ej: compra en el mayorista"
+                onChange={(e) => setBatchNotes(e.target.value)} />
+            </Field>
+
+            {batchRows.length > 0 && (
+              <div className="flex items-center justify-between rounded-lg bg-crema-100 px-3 py-2 text-sm">
+                <span className="font-semibold text-navy-600">
+                  {batchRows.length} {batchRows.length === 1 ? 'ingrediente' : 'ingredientes'}
+                </span>
+                <span className="font-bold text-navy-900">{formatARS(batchGrandTotal)}</span>
+              </div>
+            )}
+
+            {batchError && <ErrorText>{batchError}</ErrorText>}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" type="button" onClick={() => setBatchOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={batchSaving}>
+                {batchSaving ? 'Guardando…' : 'Registrar compra'}
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>

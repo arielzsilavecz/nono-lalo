@@ -1,0 +1,17 @@
+{
+  "name": "il nonno Lalo",
+  "short_name": "nonno Lalo",
+  "description": "Comida casera con alma de familia",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdfaf2",
+  "theme_color": "#223453",
+  "icons": [
+    {
+      "src": "/sorrentino_logo.png",
+      "sizes": "902x1000",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
