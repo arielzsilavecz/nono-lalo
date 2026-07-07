@@ -8,8 +8,8 @@
   "theme_color": "#223453",
   "icons": [
     {
-      "src": "/sorrentino_logo.png",
-      "sizes": "902x1000",
+      "src": "/pwa-icon.png",
+      "sizes": "1000x1000",
       "type": "image/png",
       "purpose": "any"
     }
