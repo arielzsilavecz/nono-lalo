@@ -63,7 +63,10 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
           setRecipe(
             ((recipeRows ?? []) as DishIngredient[]).map((row) => ({
               ingredient_id: row.ingredient_id,
-              qty: String(row.qty_per_portion * yld),
+              // qty_per_portion solo guarda 4 decimales; al multiplicar de vuelta
+              // por el rendimiento puede arrastrar ruido de redondeo (ej. 0.5 → 0.5001).
+              // Redondeamos a 3 decimales (precisión de 1g/1ml) para mostrarlo limpio.
+              qty: String(Math.round(row.qty_per_portion * yld * 1000) / 1000),
             })),
           )
         }

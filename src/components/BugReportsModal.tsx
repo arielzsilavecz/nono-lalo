@@ -27,6 +27,7 @@ export function BugReportsModal({ onClose }: { onClose: () => void }) {
   const [imageData, setImageData] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
 
   async function load() {
     const { data } = await supabase
@@ -198,7 +199,14 @@ export function BugReportsModal({ onClose }: { onClose: () => void }) {
                       {r.description}
                     </p>
                     {r.image_data && (
-                      <img src={r.image_data} alt="" className="mt-2 max-h-40 rounded-lg object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => setZoomedImage(r.image_data)}
+                        className="mt-2 block cursor-zoom-in"
+                        title="Ver imagen completa"
+                      >
+                        <img src={r.image_data} alt="" className="max-h-40 rounded-lg object-contain" />
+                      </button>
                     )}
                     <p className="mt-1 text-xs text-navy-400">
                       {formatShortDateTime(r.created_at)} · {r.page}
@@ -222,6 +230,15 @@ export function BugReportsModal({ onClose }: { onClose: () => void }) {
           </ul>
         )}
       </div>
+
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 z-60 flex cursor-zoom-out items-center justify-center bg-black/80 p-4"
+          onClick={() => setZoomedImage(null)}
+        >
+          <img src={zoomedImage} alt="" className="max-h-full max-w-full rounded-lg object-contain" />
+        </div>
+      )}
     </ModalOverlay>
   )
 }
