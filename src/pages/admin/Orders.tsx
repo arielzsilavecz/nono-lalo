@@ -3,8 +3,9 @@ import { supabase } from '../../lib/supabase'
 import type { Menu, Order, OrderItem, OrderStatus } from '../../lib/types'
 import { FULFILLMENT_LABELS } from '../../lib/types'
 import { formatARS, formatDateOnly, waLink } from '../../lib/format'
-import { LoadingBlock, PageTitle } from '../../components/ui'
+import { Button, LoadingBlock, PageTitle } from '../../components/ui'
 import { Check, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { NewOrderModal } from './NewOrderModal'
 
 function timeAgo(isoDate: string): string {
   const mins = Math.floor((Date.now() - Date.parse(isoDate)) / 60_000)
@@ -198,6 +199,7 @@ export function Orders() {
   const [menus, setMenus] = useState<MenuInfo[]>([])
   const [, setTick] = useState(0)
   const [showCancelled, setShowCancelled] = useState(false)
+  const [newOrderOpen, setNewOrderOpen] = useState(false)
 
   // Force timeAgo update every minute
   useEffect(() => {
@@ -250,7 +252,10 @@ export function Orders() {
 
   return (
     <div className="flex flex-col">
-      <PageTitle title="Pedidos" />
+      <PageTitle
+        title="Pedidos"
+        action={<Button onClick={() => setNewOrderOpen(true)}>+ Nuevo pedido</Button>}
+      />
 
       {/* Summary bar */}
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -394,6 +399,10 @@ export function Orders() {
             </div>
           )}
         </div>
+      )}
+
+      {newOrderOpen && (
+        <NewOrderModal onClose={() => { setNewOrderOpen(false); load() }} />
       )}
     </div>
   )
