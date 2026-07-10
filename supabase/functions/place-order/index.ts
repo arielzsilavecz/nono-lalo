@@ -4,6 +4,7 @@
 // se resuelven en la base, nunca con datos del navegador).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { sendWebPush, type PushSubscriptionRow } from "../_shared/webpush.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,6 +56,42 @@ function validate(body: OrderInput): string | null {
     if (!Number.isInteger(item.qty) || item.qty <= 0 || item.qty > 100) return "INVALID_QTY";
   }
   return null;
+}
+
+function formatARS(amount: number): string {
+  const [int, dec] = amount.toFixed(2).split(".");
+  const intFormatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return dec === "00" ? `$ ${intFormatted}` : `$ ${intFormatted},${dec}`;
+}
+
+// Avisa a los admins suscriptos de que entró un pedido nuevo. Nunca debe
+// romper la confirmación del pedido: se llama envuelto en try/catch.
+async function notifyAdmins(
+  supabase: ReturnType<typeof createClient>,
+  customerName: string,
+  total: number,
+) {
+  const { data: subs } = await supabase.from("push_subscriptions").select("*");
+  const rows = (subs ?? []) as PushSubscriptionRow[];
+  if (rows.length === 0) return;
+
+  const payload = JSON.stringify({
+    title: "Nuevo pedido",
+    body: `${customerName} — ${formatARS(total)}`,
+    url: "/admin/pedidos",
+    tag: "new-order",
+  });
+
+  const results = await Promise.all(rows.map((sub) => sendWebPush(sub, payload)));
+
+  // Solo se borran las suscripciones que el push service reporta como
+  // caducadas (404/410). Un fallo transitorio o de firma no las elimina.
+  const dead = rows
+    .filter((_, i) => results[i].status === 404 || results[i].status === 410)
+    .map((s) => s.endpoint);
+  if (dead.length > 0) {
+    await supabase.from("push_subscriptions").delete().in("endpoint", dead);
+  }
 }
 
 // Errores de la función SQL -> respuesta HTTP
@@ -124,6 +161,12 @@ Deno.serve(async (req) => {
     }
     console.error("place-order error:", message);
     return json({ error: "INTERNAL" }, 500);
+  }
+
+  try {
+    await notifyAdmins(supabase, body.customer_name.trim(), data.total);
+  } catch (err) {
+    console.error("push notify error:", err);
   }
 
   return json(data, 201);

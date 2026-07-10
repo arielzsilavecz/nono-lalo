@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Button, Card, ErrorText, Field, Input, InputAdorn, LoadingBlock, PageTitle } from '../../components/ui'
+import { usePushNotifications } from '../../lib/usePushNotifications'
 
 export function Settings() {
+  const push = usePushNotifications()
   const [whatsapp, setWhatsapp] = useState('')
   const [pickupAddress, setPickupAddress] = useState('')
   const [mapsApiKey, setMapsApiKey] = useState('')
@@ -143,6 +145,34 @@ export function Settings() {
             {saved && <span className="text-sm font-bold text-emerald-700">¡Guardado!</span>}
           </div>
         </form>
+      </Card>
+
+      <Card>
+        <p className="text-sm font-bold uppercase tracking-wide text-navy-500">Notificaciones</p>
+        <p className="mt-1 text-sm text-navy-600">
+          Recibí un aviso en este dispositivo apenas entra un pedido nuevo.
+        </p>
+        <div className="mt-4 flex items-center gap-3">
+          {!push.supported ? (
+            <p className="text-sm text-navy-500">Tu navegador no soporta notificaciones push.</p>
+          ) : push.permission === 'denied' ? (
+            <p className="text-sm text-navy-500">
+              Bloqueaste las notificaciones para este sitio; habilitalas desde los ajustes del navegador.
+            </p>
+          ) : push.subscribed ? (
+            <>
+              <span className="text-sm font-bold text-emerald-700">Activadas en este dispositivo</span>
+              <Button variant="danger" onClick={push.unsubscribe} disabled={push.loading} className="ml-auto">
+                Desactivar
+              </Button>
+            </>
+          ) : (
+            <Button onClick={push.subscribe} disabled={push.loading}>
+              {push.loading ? 'Activando…' : 'Activar notificaciones'}
+            </Button>
+          )}
+        </div>
+        {push.error && <ErrorText>{push.error}</ErrorText>}
       </Card>
     </div>
   )
