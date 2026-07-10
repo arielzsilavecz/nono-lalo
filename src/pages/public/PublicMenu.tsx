@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from '../../lib/supabase'
 import type { Fulfillment, Menu, MenuItem } from '../../lib/types'
 import { formatARS, formatDateOnly, formatDateTime, roundDeliveryCost } from '../../lib/format'
-import { imageFitStyle } from '../../lib/imageStyle'
+import { DishImage } from '../../components/DishImage'
 import { geocode, haversineKm } from '../../lib/geo'
 import { Button, Card, EmptyState, ErrorText, Field, Input, LoadingBlock, Textarea } from '../../components/ui'
 import { MapPin } from 'lucide-react'
@@ -213,14 +213,13 @@ export function PublicMenu() {
           return (
             <Card key={item.id} className={`overflow-hidden p-0! ${soldOut ? 'opacity-60' : ''}`}>
               {item.image_url && (
-                <div className="aspect-2/1 w-full overflow-hidden">
-                  <img
-                    src={item.image_url}
-                    alt={item.dish_name}
-                    className="h-full w-full object-cover"
-                    style={imageFitStyle(item.image_position, item.image_zoom)}
-                  />
-                </div>
+                <DishImage
+                  imageUrl={item.image_url}
+                  position={item.image_position}
+                  zoom={item.image_zoom}
+                  alt={item.dish_name}
+                  className="aspect-2/1 w-full"
+                />
               )}
               <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                 <div className="min-w-0 flex-1">

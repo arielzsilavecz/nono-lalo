@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import type { Dish, DishIngredient, Ingredient } from '../../lib/types'
 import { dishCost, effectivePrice, roundPrice, suggestedPrice } from '../../lib/costing'
 import { formatARS } from '../../lib/format'
-import { imageFitStyle } from '../../lib/imageStyle'
+import { DishImage } from '../../components/DishImage'
 import { Button, Card, EmptyState, LoadingBlock, PageTitle } from '../../components/ui'
 import { ModalOverlay } from '../../components/ModalOverlay'
 import { DishEditor } from './DishEditor'
@@ -65,14 +65,13 @@ export function Dishes() {
                 className="flex w-full items-center gap-3 rounded-xl border border-crema-200 bg-white p-3 text-left transition-colors hover:border-tomate-300"
               >
                 {dish.image_url ? (
-                  <div className="aspect-2/1 w-20 shrink-0 overflow-hidden rounded-lg">
-                    <img
-                      src={dish.image_url}
-                      alt={dish.name}
-                      className="h-full w-full object-cover"
-                      style={imageFitStyle(dish.image_position, dish.image_zoom)}
-                    />
-                  </div>
+                  <DishImage
+                    imageUrl={dish.image_url}
+                    position={dish.image_position}
+                    zoom={dish.image_zoom}
+                    alt={dish.name}
+                    className="aspect-2/1 w-20 shrink-0 rounded-lg"
+                  />
                 ) : (
                   <div className="aspect-2/1 w-20 shrink-0 rounded-lg bg-crema-200" />
                 )}
@@ -120,14 +119,13 @@ export function Dishes() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {dish.image_url ? (
-                          <div className="aspect-2/1 w-16 shrink-0 overflow-hidden rounded-lg">
-                            <img
-                              src={dish.image_url}
-                              alt={dish.name}
-                              className="h-full w-full object-cover"
-                              style={imageFitStyle(dish.image_position, dish.image_zoom)}
-                            />
-                          </div>
+                          <DishImage
+                            imageUrl={dish.image_url}
+                            position={dish.image_position}
+                            zoom={dish.image_zoom}
+                            alt={dish.name}
+                            className="aspect-2/1 w-16 shrink-0 rounded-lg"
+                          />
                         ) : (
                           <div className="aspect-2/1 w-16 shrink-0 rounded-lg bg-crema-200" />
                         )}

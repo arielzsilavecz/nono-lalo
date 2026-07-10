@@ -5,7 +5,7 @@ import type { Menu, MenuItem } from '../../lib/types'
 import { formatARS, formatDateOnly, formatDateTime, todayDateValue } from '../../lib/format'
 import { Card, EmptyState, LoadingBlock } from '../../components/ui'
 import { useCart } from '../../lib/CartContext'
-import { imageFitStyle } from '../../lib/imageStyle'
+import { DishImage } from '../../components/DishImage'
 
 export function Home() {
   const [menus, setMenus] = useState<Menu[]>([])
@@ -93,14 +93,13 @@ export function Home() {
             return (
               <Card key={menu.id} className="relative flex flex-col overflow-hidden p-0!">
                 {coverImage && (
-                  <div className="aspect-2/1 w-full overflow-hidden">
-                    <img
-                      src={coverImage}
-                      alt={menu.title}
-                      className="h-full w-full object-cover"
-                      style={imageFitStyle(coverPosition, coverZoom)}
-                    />
-                  </div>
+                  <DishImage
+                    imageUrl={coverImage}
+                    position={coverPosition}
+                    zoom={coverZoom}
+                    alt={menu.title}
+                    className="aspect-2/1 w-full"
+                  />
                 )}
                 <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-center gap-2">

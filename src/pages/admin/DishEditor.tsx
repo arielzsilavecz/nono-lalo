@@ -6,6 +6,7 @@ import { roundPrice, suggestedPrice } from '../../lib/costing'
 import { formatARS } from '../../lib/format'
 import { Button, Card, ErrorText, Field, Input, InputAdorn, LoadingBlock, PageTitle, Select, Textarea } from '../../components/ui'
 import { ImagePositionEditor } from '../../components/ImagePositionEditor'
+import { compressImage } from '../../lib/compressImage'
 
 interface RecipeRow {
   ingredient_id: string
@@ -35,6 +36,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
   const [imageZoom, setImageZoom] = useState(1)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -106,8 +108,12 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
   }
 
   function setFile(file: File) {
+    setImagePreview((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file) })
     setPendingFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    setImageRemoved(false)
+    // Una imagen nueva casi nunca comparte el encuadre de la anterior: reseteamos.
+    setImagePosition('0% 0%')
+    setImageZoom(1)
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -117,15 +123,12 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
     e.target.value = ''
   }
 
-  async function removeImage() {
-    if (!window.confirm('¿Quitar la imagen de este plato?')) return
-    if (!isNew && dishId) {
-      await supabase.storage.from('dish-images').remove([dishId])
-      await supabase.from('dishes').update({ image_url: null }).eq('id', dishId)
-    }
-    setImageUrl(null)
+  // Solo marca la intención: el borrado real de storage/DB ocurre en save(),
+  // así "Cancelar" deshace y no rompe la imagen del menú publicado antes de tiempo.
+  function removeImage() {
+    setImagePreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null })
     setPendingFile(null)
-    setImagePreview(null)
+    setImageRemoved(true)
   }
 
   async function save(e: React.FormEvent) {
@@ -195,9 +198,10 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
     }
 
     if (pendingFile && savedId) {
+      const blob = await compressImage(pendingFile)
       const { error: storageError } = await supabase.storage
         .from('dish-images')
-        .upload(savedId, pendingFile, { upsert: true, contentType: pendingFile.type })
+        .upload(savedId, blob, { upsert: true, contentType: blob.type || 'image/jpeg' })
       if (storageError) {
         setError('El plato se guardó pero la imagen no se pudo subir. Intentá de nuevo editando el plato.')
         setSaving(false)
@@ -205,7 +209,12 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
         return
       }
       const { data: { publicUrl } } = supabase.storage.from('dish-images').getPublicUrl(savedId)
-      await supabase.from('dishes').update({ image_url: publicUrl }).eq('id', savedId)
+      // La ruta de storage es fija (dish-images/{id}); sin un parámetro de versión,
+      // el navegador y el CDN servirían la imagen anterior cacheada. El ?v= la refresca.
+      await supabase.from('dishes').update({ image_url: `${publicUrl}?v=${Date.now()}` }).eq('id', savedId)
+    } else if (imageRemoved && !isNew && savedId) {
+      await supabase.storage.from('dish-images').remove([savedId])
+      await supabase.from('dishes').update({ image_url: null }).eq('id', savedId)
     }
 
     close()
@@ -274,7 +283,7 @@ export function DishEditor({ embeddedId, onClose }: Props = {}) {
             {/* Imagen del plato */}
             <div>
               <span className="mb-1 block text-sm font-bold text-navy-700">Imagen del plato</span>
-              {(imagePreview ?? imageUrl) ? (
+              {(imagePreview ?? (imageRemoved ? null : imageUrl)) ? (
                 <ImagePositionEditor
                   imageUrl={(imagePreview ?? imageUrl)!}
                   position={imagePosition}
