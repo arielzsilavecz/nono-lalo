@@ -40,7 +40,18 @@ export function ImagePositionEditor({
   }
   const { x: tx, y: ty } = parsePosition(position)
 
-  useEffect(() => { setNatural(null) }, [imageUrl])
+  // Load the image's natural size reliably. An <img onLoad> can silently skip
+  // cached images (the load fires before React attaches the handler), which would
+  // leave `natural` null and disable panning — so we resolve it here instead.
+  useEffect(() => {
+    setNatural(null)
+    const img = new Image()
+    const done = () => setNatural({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onload = done
+    img.src = imageUrl
+    if (img.complete && img.naturalWidth) done()
+    return () => { img.onload = null }
+  }, [imageUrl])
 
   // object-contain into a 2:1 box: the whole image fits (min scale). fw/fh depend
   // only on the image aspect and the zoom.
@@ -103,7 +114,6 @@ export function ImagePositionEditor({
             position={position}
             zoom={zoom}
             className="h-full w-full"
-            onSharpLoad={(e) => setNatural({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
           />
 
           {/* Cambiar / Quitar — no deben iniciar el arrastre */}
